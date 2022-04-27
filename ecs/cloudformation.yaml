@@ -1,0 +1,145 @@
+Description: This template deploys test task on Fargate
+Parameters:
+  EnvironmentName:
+    AllowedValues:
+      - prod
+      - staging
+    Type: String
+  ServiceName:
+    Type: String
+  AccountId:
+    Type: String
+  DefaultRegion:
+    Type: String
+  ImageName:
+    Type: String
+  ImageTag:
+    Type: String
+Conditions:
+  EnableProdScheduleRule: !Equals [!Ref EnvironmentName, prod]
+Resources:
+  CloudWatchLogsGroup:
+    Properties:
+      LogGroupName: !Sub /fargate/${EnvironmentName}/my-terna-metering
+      RetentionInDays: 7
+    Type: AWS::Logs::LogGroup
+  MetricFilter:
+    DependsOn: CloudWatchLogsGroup
+    Properties:
+      FilterPattern: ?ERROR ?Error ?error
+      LogGroupName: !Ref 'CloudWatchLogsGroup'
+      MetricTransformations:
+        - DefaultValue: 0.0
+          MetricName: my-terna-meteringFilter
+          MetricNamespace: !Sub '${EnvironmentName}/fargate/'
+          MetricValue: '1'
+    Type: AWS::Logs::MetricFilter
+  MetricFilterAlarm:
+    Properties:
+      AlarmActions:
+        - !Sub 'arn:aws:sns:eu-west-1:863181445948:${EnvironmentName}-alarmNotificationTopic'
+      AlarmDescription: !Sub 'An error occurred in job my-terna-metering in Fargate ${EnvironmentName}
+        environment'
+      AlarmName: !Sub ${EnvironmentName}-my-terna-metering-logs-error-alarm
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: my-terna-metering-logs-error
+      Namespace: !Sub '${EnvironmentName}/fargate/'
+      Period: 86400
+      Statistic: Average
+      Threshold: 0
+    Type: AWS::CloudWatch::Alarm
+# ScheduledRule:
+#   DependsOn:
+#     - TaskRole
+#     - TaskDefinition
+#   Properties:
+#     Description: !Sub 'ScheduledRule for task my-terna-metering in Fargate ${EnvironmentName}
+#       environment'
+#     ScheduleExpression: cron(0 0 * * ? *)
+#     State: !If [EnableProdScheduleRule, ENABLED, DISABLED]
+#     Targets:
+#       - Arn: !Sub 'arn:aws:ecs:eu-west-1:863181445948:cluster/fargate-${EnvironmentName}'
+#         EcsParameters:
+#           LaunchType: FARGATE
+#           NetworkConfiguration:
+#             AwsVpcConfiguration:
+#               AssignPublicIp: DISABLED
+#               SecurityGroups:
+#                 - sg-013ba8c102109773e
+#               Subnets:
+#                 - subnet-060126506e400d7cb
+#                 - subnet-06144cb1fe1dbd38b
+#                 - subnet-0a302591beab0099d
+#           TaskCount: 1
+#           TaskDefinitionArn: !Ref 'TaskDefinition'
+#         Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
+#         RoleArn: !GetAtt 'TaskRole.Arn'
+#   Type: AWS::Events::Rule
+#   Conditions: EnableProdScheduleRule
+
+Resources:
+  CloudWatchLogsGroup:
+    Properties:
+      LogGroupName: !Sub /fargate/${EnvironmentName}/my-terna-metering
+      RetentionInDays: 7
+    Type: AWS::Logs::LogGroup
+
+  TaskDefinition:
+    DependsOn:
+      - TaskRole
+      - CloudWatchLogsGroup
+    Properties:
+      ContainerDefinitions:
+        - Essential: true
+          Image: !Sub ${AccountId}.dkr.ecr.${DefaultRegion}.amazonaws.com/${ImageName}:${ImageTag}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudWatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: Fargate
+          Name: !Sub ${EnvironmentName}-my-terna-metering
+          Environment:
+            - Name: ENVIRONMENT
+              Value: !Sub ${EnvironmentName}
+            - Name: SERVICE_NAME
+              Value: !Sub ${ServiceName}
+            - Name: REGION
+              Value: !Sub ${DefaultRegion}
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Family: !Sub ${EnvironmentName}-fargate-my-terna-metering
+      TaskRoleArn: !GetAtt 'TaskRole.Arn'
+      ExecutionRoleArn: !Sub arn:aws:iam::${AccountId}:role/ecsTaskExecutionRole
+    Type: AWS::ECS::TaskDefinition
+
+  TaskRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+                Service:
+                  - events.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+      RoleName: !Sub ${EnvironmentName}-Fargate-my-terna-metering-Role
+    Type: AWS::IAM::Role
