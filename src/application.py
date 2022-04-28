@@ -65,10 +65,10 @@ def login(company):
         assert "MyTerna" in driver.title
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.NAME, "userid"))
-        ).send_keys(os.environ[company.upper().replace(" ", "_") + "USER_ID"])
+        ).send_keys(os.environ[company.upper().replace(" ", "_") + "_USER_ID"])
 
         driver.find_element(by=By.NAME, value="password").send_keys(
-            os.environ[company.upper().replace(" ", "_") + "PASSWORD"]
+            os.environ[company.upper().replace(" ", "_") + "_PASSWORD"]
         )
         driver.find_element(by=By.NAME, value="login").click()
         try:
