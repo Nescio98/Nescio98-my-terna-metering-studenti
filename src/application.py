@@ -239,7 +239,7 @@ def main(l):
             )
             for measure in os.listdir(DOWNLOAD_PATH):
                 if measure.endswith(".xlsx"):
-                    upload_file(measure, "ego-myTerna-metering", s3)
+                    upload_file(measure, "ego-my-terna-metering", s3)
 
 
 if __name__ == "__main__":

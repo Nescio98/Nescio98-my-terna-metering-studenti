@@ -149,5 +149,25 @@ Resources:
                   - events.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+      Policies:
+        - PolicyName: !Sub ${EnvironmentName}-S3
+          PolicyDocument:
+            {
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action":
+                      [
+                        "s3:PutObject"
+                      ],
+                    "Resource":
+                      [
+                        !Sub "arn:aws:s3:::ego-my-terna-metering/*"
+                      ]
+                  }
+                ]
+            }
       RoleName: !Sub ${EnvironmentName}-Fargate-my-terna-metering-Role
     Type: AWS::IAM::Role
