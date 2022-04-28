@@ -101,16 +101,16 @@ definitions: # AWS authentication variables are configured in workspace
             --stack-name ${BITBUCKET_BRANCH}-${BITBUCKET_REPO_SLUG} 
             --capabilities CAPABILITY_NAMED_IAM 
             --parameter-overrides 
-              AccessKey=${AWS_ACCESS_KEY_ID}
-              SecretKey=${AWS_SECRET_ACCESS_KEY}
-              EGOEnergyUserID=${EGOEnergy_UserID}
-              EGOEnergyPassword=${EGOEnergy_Password}
-              EnvironmentName=prod  
-              ServiceName=${BITBUCKET_REPO_SLUG}
+              EnvironmentName=${BITBUCKET_BRANCH} 
+              ServiceName=${BITBUCKET_REPO_SLUG} 
               AccountId=${AWS_ACCOUNT_ID} 
               DefaultRegion=${AWS_DEFAULT_REGION} 
-              ImageName=${ECR_REPO}
+              ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
+              AccessKey=${AWS_ACCESS_KEY_ID} 
+              SecretKey=${AWS_SECRET_ACCESS_KEY} 
+              EGOEnergyUserID=${EGOEnergy_UserID} 
+              EGOEnergyPassword=${EGOEnergy_Password} 
     - step: &task
         name: Deploy to Fargate
         image: amazon/aws-cli
@@ -134,12 +134,16 @@ definitions: # AWS authentication variables are configured in workspace
             --stack-name ${BITBUCKET_BRANCH}-${BITBUCKET_REPO_SLUG} 
             --capabilities CAPABILITY_NAMED_IAM 
             --parameter-overrides 
-              EnvironmentName=${BITBUCKET_BRANCH}  
-              ServiceName=${BITBUCKET_REPO_SLUG}
+              EnvironmentName=${BITBUCKET_BRANCH} 
+              ServiceName=${BITBUCKET_REPO_SLUG} 
               AccountId=${AWS_ACCOUNT_ID} 
               DefaultRegion=${AWS_DEFAULT_REGION} 
-              ImageName=${ECR_REPO}
+              ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
+              AccessKey=${AWS_ACCESS_KEY_ID} 
+              SecretKey=${AWS_SECRET_ACCESS_KEY} 
+              EGOEnergyUserID=${EGOEnergy_UserID} 
+              EGOEnergyPassword=${EGOEnergy_Password} 
 
 pipelines:
   custom:
