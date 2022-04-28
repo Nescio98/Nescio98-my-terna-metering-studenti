@@ -19,9 +19,9 @@ Parameters:
     Type: String
   SecretKey:
     Type: String
-  EGOEnergy_UserID:
+  EGOEnergyUserID:
     Type: String
-  EGOEnergy_Password:
+  EGOEnergyPassword:
     Type: String
 Conditions:
   EnableProdScheduleRule: !Equals [!Ref EnvironmentName, prod]
