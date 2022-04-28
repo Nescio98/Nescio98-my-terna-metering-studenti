@@ -179,6 +179,8 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                     filename = (
                         DOWNLOAD_PATH
                         + "/"
+                        + company
+                        + "-"
                         + str(p[0])
                         + "-"
                         + str(c_month)
