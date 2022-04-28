@@ -31,7 +31,7 @@ def get_plants(is_relevant, company):
         p_number = len(plants)
         logger.info(
             "Found {} {} {} plants".format(
-                p_number, company, "relevant" if is_relevant else "urelevant"
+                p_number, company, "relevant" if is_relevant else "unrelevant"
             )
         )
     finally:

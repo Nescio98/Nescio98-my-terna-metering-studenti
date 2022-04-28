@@ -123,8 +123,8 @@ Resources:
               Value: !Sub ${EGOEnergyUserID}
             - Name: EGO_ENERGY_PASSWORD
               Value: !Sub ${EGOEnergyPassword}
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '2048'
+      Memory: '4096'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
