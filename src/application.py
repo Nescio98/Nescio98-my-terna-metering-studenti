@@ -65,11 +65,10 @@ def login(company):
         assert "MyTerna" in driver.title
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.NAME, "userid"))
-        ).send_keys(os.environ[company.replace(" ", "")+"UserID"])
-        
+        ).send_keys(os.environ[company.upper().replace(" ", "_") + "USER_ID"])
 
         driver.find_element(by=By.NAME, value="password").send_keys(
-            os.environ[os.environ[company.replace(" ", "")+"Password"]
+            os.environ[company.upper().replace(" ", "_") + "PASSWORD"]
         )
         driver.find_element(by=By.NAME, value="login").click()
         try:
@@ -234,8 +233,8 @@ def main(l):
             driver.close()
             s3 = boto3.client(
                 "s3",
-                aws_access_key_id=os.environ["AccessKey"],
-                aws_secret_access_key=os.environ["SecretKey"],
+                aws_access_key_id=os.environ["ACCESS_KEY"],
+                aws_secret_access_key=os.environ["SECRET_KEY"],
             )
             for measure in os.listdir(DOWNLOAD_PATH):
                 if measure.endswith(".xlsx"):

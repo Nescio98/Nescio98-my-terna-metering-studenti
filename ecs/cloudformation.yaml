@@ -115,6 +115,14 @@ Resources:
               Value: !Sub ${ServiceName}
             - Name: REGION
               Value: !Sub ${DefaultRegion}
+            - Name: ACCESS_KEY
+              Value: !Sub ${AccessKey}
+            - Name: SECRET_KEY
+              Value: !Sub ${SecretKey}
+            - Name: EGO_ENERGY_USER_ID
+              Value: !Sub ${EGOEnergyUserID}
+            - Name: EGO_ENERGY_PASSWORD
+              Value: !Sub ${EGOEnergyPassword}
       Cpu: '256'
       Memory: '512'
       NetworkMode: awsvpc
