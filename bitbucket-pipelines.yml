@@ -109,8 +109,8 @@ definitions: # AWS authentication variables are configured in workspace
               ImageTag=${IMAGE_TAG}
               AccessKey=${DATALAKE_PROD_AWS_ACCESS_KEY_ID}
               SecretKey=${DATALAKE_PROD_AWS_SECRET_ACCESS_KEY}
-              EGOEnergy_UserID=${EGOEnergy_UserID}
-              EGOEnergy_Password=${EGOEnergy_Password}
+              EGOEnergyUserID=${EGOEnergy_UserID}
+              EGOEnergyPassword=${EGOEnergy_Password}
     - step: &task
         name: Deploy to Fargate
         image: amazon/aws-cli
