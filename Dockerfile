@@ -9,5 +9,5 @@ RUN pip install -r requirements.txt
 
 #Insert here app code
 COPY src/* ./
-
+ENTRYPOINT [ "python" ]
 CMD ["handler.py"]
