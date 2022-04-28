@@ -4,6 +4,7 @@ from multiprocessing.connection import wait
 from time import sleep
 import datetime
 import os
+import boto3
 import database
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
@@ -11,6 +12,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+from shared import upload_file
 
 DOWNLOAD_PATH = "/tmp/measures"
 
@@ -42,13 +45,15 @@ def login(company):
     access = False
     while not access:
         options = Options()
-        options.binary_location = "/usr/bin/chromium"
+        options.binary_location = "/usr/bin/google-chrome-stable"
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
         chrome_prefs = {
             "download.default_directory": DOWNLOAD_PATH,
             "javascript.enabled": False,
         }
-        # chrome_prefs["profile.default_content_settings"] = {"images": 2}
-        # chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
+        chrome_prefs["profile.default_content_settings"] = {"images": 2}
         options.experimental_options["prefs"] = chrome_prefs
 
         driver = webdriver.Chrome(options=options)
@@ -60,9 +65,12 @@ def login(company):
         assert "MyTerna" in driver.title
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.NAME, "userid"))
-        ).send_keys("davidemini")
+        ).send_keys(os.environ[company.replace(" ", "")+"_UserID"])
+        
 
-        driver.find_element(by=By.NAME, value="password").send_keys("Terna-dm2")
+        driver.find_element(by=By.NAME, value="password").send_keys(
+            os.environ[os.environ[company.replace(" ", "")+"_Password"]
+        )
         driver.find_element(by=By.NAME, value="login").click()
         try:
             WebDriverWait(driver, 20).until(
@@ -224,6 +232,14 @@ def main(l):
                 logger.info("No metering for EGO Energy relevant plants!")
         finally:
             driver.close()
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=os.environ["AccessKey"],
+                aws_secret_access_key=os.environ["SecretKey"],
+            )
+            for measure in os.listdir(DOWNLOAD_PATH):
+                if measure.endswith(".xlsx"):
+                    upload_file(measure, "ego-myTerna-metering", s3)
 
 
 if __name__ == "__main__":

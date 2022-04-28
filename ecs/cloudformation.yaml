@@ -15,6 +15,14 @@ Parameters:
     Type: String
   ImageTag:
     Type: String
+  AccessKey:
+    Type: String
+  SecretKey:
+    Type: String
+  EGOEnergy_UserID:
+    Type: String
+  EGOEnergy_Password:
+    Type: String
 Conditions:
   EnableProdScheduleRule: !Equals [!Ref EnvironmentName, prod]
 Resources:

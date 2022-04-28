@@ -107,6 +107,10 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO}
               ImageTag=${IMAGE_TAG}
+              AccessKey=${DATALAKE_PROD_AWS_ACCESS_KEY_ID}
+              SecretKey=${DATALAKE_PROD_AWS_SECRET_ACCESS_KEY}
+              EGOEnergy_UserID=${EGOEnergy_UserID}
+              EGOEnergy_Password=${EGOEnergy_Password}
     - step: &task
         name: Deploy to Fargate
         image: amazon/aws-cli
