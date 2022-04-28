@@ -107,8 +107,8 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO}
               ImageTag=${IMAGE_TAG}
-              AccessKey=${DATALAKE_PROD_AWS_ACCESS_KEY_ID}
-              SecretKey=${DATALAKE_PROD_AWS_SECRET_ACCESS_KEY}
+              AccessKey=${AWS_ACCESS_KEY_ID}
+              SecretKey=${AWS_SECRET_ACCESS_KEY}
               EGOEnergyUserID=${EGOEnergy_UserID}
               EGOEnergyPassword=${EGOEnergy_Password}
     - step: &task
