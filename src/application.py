@@ -12,10 +12,47 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import watchdog.events
+import watchdog.observers
 
 from shared import upload_file
 
 DOWNLOAD_PATH = "/tmp/measures"
+
+
+class Handler(watchdog.events.PatternMatchingEventHandler):
+    def __init__(self):
+        # Set the patterns for PatternMatchingEventHandler
+        watchdog.events.PatternMatchingEventHandler.__init__(
+            self, patterns=["*.xlsx"], ignore_directories=True, case_sensitive=False
+        )
+        self.s3 = boto3.client(
+            "s3",
+            aws_access_key_id=os.environ["ACCESS_KEY"],
+            aws_secret_access_key=os.environ["SECRET_KEY"],
+        )
+
+    # def on_created(self, event):
+    #     print("Watchdog received created event - % s." % event.src_path)
+    #     # Event is created, you can process it now
+
+    # def on_modified(self, event):
+    #     print("Watchdog received modified event - % s." % event.src_path)
+    #     # Event is modified, you can process it now
+
+    def on_moved(self, event):
+        print("Uploading file % s to S3." % event.dest_path)
+        # Event is modified, you can process it now
+        file = event.dest_path
+        upload_file(file, "ego-my-terna-metering", self.s3)
+
+
+def start_watcher(src_path):
+    event_handler = Handler()
+    observer = watchdog.observers.Observer()
+    observer.schedule(event_handler, path=src_path, recursive=True)
+    observer.start()
+    # observer.join()
 
 
 def get_plants(is_relevant, company):
@@ -87,6 +124,10 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
 
     x = 0  # counter for not found plants
     y = 0  # counter for the number of plants
+    currentDateTime = datetime.datetime.now()
+    date = currentDateTime.date()
+    c_year = date.strftime("%Y")
+    c_month = str(int(date.strftime("%m")) - 2)
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     for p in plants:
@@ -98,10 +139,6 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             driver.get(
                 "https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx"
             )
-        currentDateTime = datetime.datetime.now()
-        date = currentDateTime.date()
-        c_year = date.strftime("%Y")
-        c_month = str(int(date.strftime("%m")) - 1)
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
         )
@@ -149,7 +186,12 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 (By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
             )
         )
-        try:
+        if (
+            "0"
+            not in driver.find_element(
+                By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
+            ).text
+        ):
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_GridView1")
@@ -159,7 +201,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
             )
             l = len(table.find_elements(by=By.CSS_SELECTOR, value="tr")) - 1
-        except:
+        else:
             logger.info("No data for plant: " + p[0])
             x += 1
             continue
@@ -234,6 +276,7 @@ def main(l):
     logger = l
     if not os.path.exists(DOWNLOAD_PATH):
         os.makedirs(DOWNLOAD_PATH)
+    start_watcher(DOWNLOAD_PATH)
     companies = ["EGO Energy", "EGO Data"]
     for company in companies:
         driver = login(company)
@@ -254,14 +297,6 @@ def main(l):
                 logger.info("No metering for EGO Energy relevant plants!")
         finally:
             driver.close()
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=os.environ["ACCESS_KEY"],
-                aws_secret_access_key=os.environ["SECRET_KEY"],
-            )
-            for measure in os.listdir(DOWNLOAD_PATH):
-                if measure.endswith(".xlsx"):
-                    upload_file(measure, "ego-my-terna-metering", s3)
 
 
 if __name__ == "__main__":
