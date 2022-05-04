@@ -3,6 +3,7 @@ from cmath import log
 from multiprocessing.connection import wait
 from time import sleep
 import datetime
+from dateutil.relativedelta import relativedelta
 import os
 import boto3
 import database
@@ -86,6 +87,7 @@ def login(company):
     while not access:
         options = Options()
         options.binary_location = "/usr/bin/google-chrome-stable"
+        # options.binary_location = "/usr/bin/chromium"
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -127,17 +129,17 @@ def create_file_name(plant_type, date, rup, x, version, validation):
     return (
         DOWNLOAD_PATH
         + "/"
-        + plant_type
+        + str(plant_type)
         + "_"
-        + date
+        + str(date)
         + "."
-        + rup
+        + str(rup)
         + "."
-        + x
+        + str(x)
         + "."
-        + version
+        + str(version)
         + "."
-        + validation
+        + str(validation)
         + ".txt"
     )
 
@@ -149,8 +151,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
     c_year = date.strftime("%Y")
-    c_month = str(int(date.strftime("%m")) - 2)
-
+    c_month = (date - relativedelta(months=1)).strftime("%m")
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     for p in plants:
         y = y + 1
@@ -174,7 +175,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
-        ).select_by_value(c_month)
+        ).select_by_value(str(int(c_month)))
         if is_relevant:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
@@ -251,7 +252,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             )
             codice_up = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
-            ).text
+            ).get_attribute("value")
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
@@ -259,7 +260,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             )
             codice_psv = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
-            ).text
+            ).get_attribute("value")
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxVersione")
@@ -267,22 +268,27 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             )
             versione = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxVersione"
-            ).text
+            ).get_attribute("value")
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
                 )
             )
-            validazione = driver.find_element(
-                By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna"
-            ).text
+            validazione = datetime.datetime.strptime(
+                (
+                    driver.find_element(
+                        By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna"
+                    )
+                ),
+                "%d/%m/%Y %H:%M:%S",
+            ).strftime("%Y%m%d%H%M%S")
             date = str(c_year) + str(c_month)
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
                 )
             )
-            logger.info("Downloading {} metering v.{}...".format(p[0], v))
+            logger.info("Downloading {} metering v.{}...".format(p[0], versione))
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
             ).click()
@@ -311,13 +317,6 @@ def main(l):
     for company in companies:
         driver = login(company)
         try:
-            plants, p_number = get_plants(False, company)
-            if p_number != 0:
-                donwload_metering(
-                    plants, p_number, False, company, driver
-                )  # Download EGO Energy unrelevant metering
-            else:
-                logger.info("No metering for EGO Energy unrelevant plants!")
             plants, p_number = get_plants(True, company)
             if p_number != 0:
                 donwload_metering(
@@ -325,6 +324,13 @@ def main(l):
                 )  # Download EGO Energy relevant metering
             else:
                 logger.info("No metering for EGO Energy relevant plants!")
+            plants, p_number = get_plants(False, company)
+            if p_number != 0:
+                donwload_metering(
+                    plants, p_number, False, company, driver
+                )  # Download EGO Energy unrelevant metering
+            else:
+                logger.info("No metering for EGO Energy unrelevant plants!")
         finally:
             driver.close()
 
