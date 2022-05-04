@@ -24,7 +24,10 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
     def __init__(self):
         # Set the patterns for PatternMatchingEventHandler
         watchdog.events.PatternMatchingEventHandler.__init__(
-            self, patterns=["*.xlsx"], ignore_directories=True, case_sensitive=False
+            self,
+            patterns=["UPR*.txt", "UPNR*.txt"],
+            ignore_directories=True,
+            case_sensitive=False,
         )
         self.s3 = boto3.client(
             "s3",
@@ -120,6 +123,25 @@ def login(company):
     return driver
 
 
+def create_file_name(plant_type, date, rup, x, version, validation):
+    return (
+        DOWNLOAD_PATH
+        + "/"
+        + plant_type
+        + "_"
+        + date
+        + "."
+        + rup
+        + "."
+        + x
+        + "."
+        + version
+        + "."
+        + validation
+        + ".txt"
+    )
+
+
 def donwload_metering(plants, p_number, is_relevant, company, driver):
 
     x = 0  # counter for not found plants
@@ -135,10 +157,12 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
         logger.info("Searching plant {} ({} of {}).".format(p[0], y, p_number))
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
+            plant_type = "UPR"
         else:
             driver.get(
                 "https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx"
             )
+            plant_type = "UPNR"
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
         )
@@ -222,6 +246,39 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             cells[0].click()
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
+                    (By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
+                )
+            )
+            codice_up = driver.find_element(
+                By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
+            ).text
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
+                )
+            )
+            codice_psv = driver.find_element(
+                By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
+            ).text
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.ID, "ctl00_cphMainPageMetering_tbxVersione")
+                )
+            )
+            versione = driver.find_element(
+                By.ID, "ctl00_cphMainPageMetering_tbxVersione"
+            ).text
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
+                )
+            )
+            validazione = driver.find_element(
+                By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna"
+            ).text
+            date = str(c_year) + str(c_month)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
                 )
             )
@@ -232,36 +289,9 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             while not os.path.exists(DOWNLOAD_PATH + "/Curve_97686.txt"):
                 sleep(1)
             if os.path.isfile(DOWNLOAD_PATH + "/Curve_97686.txt"):
-                filename = (
-                    DOWNLOAD_PATH
-                    + "/"
-                    + company
-                    + "-"
-                    + str(p[0])
-                    + "-"
-                    + str(c_month)
-                    + "-"
-                    + str(c_year)
-                    + "-v"
-                    + str(v)
-                    + ".xlsx"
+                filename = create_file_name(
+                    plant_type, date, codice_up, codice_psv, versione, validazione
                 )
-                while os.path.exists(filename):
-                    v += 1
-                    filename = (
-                        DOWNLOAD_PATH
-                        + "/"
-                        + company
-                        + "-"
-                        + str(p[0])
-                        + "-"
-                        + str(c_month)
-                        + "-"
-                        + str(c_year)
-                        + "-v"
-                        + str(v)
-                        + ".xlsx"
-                    )
                 os.rename(r"" + DOWNLOAD_PATH + "/Curve_97686.txt", filename)
             driver.execute_script("window.history.go(-1)")
             v += 1
