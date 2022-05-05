@@ -329,8 +329,10 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
 def main(l):
     global logger
     logger = l
-    companies = ["EGO Energy", "EGO Data"]
+    if not os.path.exists(DOWNLOAD_PATH):
+        os.makedirs(DOWNLOAD_PATH)
     start_watcher(DOWNLOAD_PATH)
+    companies = ["EGO Energy", "EGO Data"]
     for company in companies:
         driver = login(company)
         try:
