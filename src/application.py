@@ -48,7 +48,12 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
         print("Uploading file % s to S3." % event.dest_path)
         # Event is modified, you can process it now
         file = event.dest_path
-        upload_file(file, "ego-my-terna-metering", self.s3)
+        upload_file(
+            file,
+            "ego-my-terna-metering",
+            self.s3,
+            file.replace(DOWNLOAD_PATH + "/", ""),
+        )
 
 
 def start_watcher(src_path):
@@ -125,9 +130,15 @@ def login(company):
     return driver
 
 
-def create_file_name(plant_type, date, rup, x, version, validation):
+def create_file_name(plant_type, date, rup, x, version, validation, company):
     return (
         DOWNLOAD_PATH
+        + "/"
+        + company
+        + "/"
+        + date[:4]
+        + "/"
+        + date[-2:]
         + "/"
         + str(plant_type)
         + "_"
@@ -150,8 +161,10 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
     y = 0  # counter for the number of plants
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
-    c_year = date.strftime("%Y")
-    c_month = (date - relativedelta(months=1)).strftime("%m")
+    year = date.strftime("%Y")
+    month = (date - relativedelta(months=2)).strftime("%m")
+    if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
+        os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     for p in plants:
         y = y + 1
@@ -169,13 +182,13 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
-        ).select_by_value(c_year)
+        ).select_by_value(year)
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlMese"))
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
-        ).select_by_value(str(int(c_month)))
+        ).select_by_value(str(int(month)))
         if is_relevant:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
@@ -282,7 +295,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 ),
                 "%d/%m/%Y %H:%M:%S",
             ).strftime("%Y%m%d%H%M%S")
-            date = str(c_year) + str(c_month)
+            date = str(year) + str(month)
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
@@ -296,7 +309,13 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 sleep(1)
             if os.path.isfile(DOWNLOAD_PATH + "/Curve_97686.txt"):
                 filename = create_file_name(
-                    plant_type, date, codice_up, codice_psv, versione, validazione
+                    plant_type,
+                    date,
+                    codice_up,
+                    codice_psv,
+                    versione,
+                    validazione,
+                    company,
                 )
                 os.rename(r"" + DOWNLOAD_PATH + "/Curve_97686.txt", filename)
             driver.execute_script("window.history.go(-1)")
@@ -310,10 +329,8 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
 def main(l):
     global logger
     logger = l
-    if not os.path.exists(DOWNLOAD_PATH):
-        os.makedirs(DOWNLOAD_PATH)
-    start_watcher(DOWNLOAD_PATH)
     companies = ["EGO Energy", "EGO Data"]
+    start_watcher(DOWNLOAD_PATH)
     for company in companies:
         driver = login(company)
         try:
