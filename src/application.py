@@ -12,10 +12,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+import selenium.common.exceptions as exceptions
+
 from selenium.webdriver.support import expected_conditions as EC
 import watchdog.events
 import watchdog.observers
-
+import re
 from shared import upload_file
 
 DOWNLOAD_PATH = "/tmp/measures"
@@ -104,24 +106,23 @@ def login(company):
         options.experimental_options["prefs"] = chrome_prefs
 
         driver = webdriver.Chrome(options=options)
+        wait = WebDriverWait(driver, 30)
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
         driver.find_element(
             by=By.CSS_SELECTOR, value="div.col-m-6:nth-child(1) > a:nth-child(1)"
         ).click()
         assert "MyTerna" in driver.title
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.NAME, "userid"))
-        ).send_keys(os.environ[company.upper().replace(" ", "_") + "_USER_ID"])
+        wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(
+            os.environ[company.upper().replace(" ", "_") + "_USER_ID"]
+        )
 
         driver.find_element(by=By.NAME, value="password").send_keys(
             os.environ[company.upper().replace(" ", "_") + "_PASSWORD"]
         )
         driver.find_element(by=By.NAME, value="login").click()
         try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "nameSurnameCustomer"))
-            )
+            wait.until(EC.presence_of_element_located((By.ID, "nameSurnameCustomer")))
             access = True
             logger.info("Logged in with " + company + " account.")
         except:
@@ -156,7 +157,6 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
 
 
 def donwload_metering(plants, p_number, is_relevant, company, driver):
-
     x = 0  # counter for not found plants
     y = 0  # counter for the number of plants
     currentDateTime = datetime.datetime.now()
@@ -177,20 +177,20 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 "https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx"
             )
             plant_type = "UPNR"
-        WebDriverWait(driver, 10).until(
+        wait.until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
         ).select_by_value(year)
-        WebDriverWait(driver, 10).until(
+        wait.until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlMese"))
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
         ).select_by_value(str(int(month)))
         if is_relevant:
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
                 )
@@ -199,7 +199,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
             ).send_keys(p)
         else:
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
                 )
@@ -209,7 +209,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                     by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
                 )
             ).select_by_value("UPNR_PUNTUALE")
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
                 )
@@ -219,18 +219,18 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             ).send_keys(p)
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_rbTutte").click()
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
-        WebDriverWait(driver, 10).until(
+        wait.until(
             EC.presence_of_element_located(
                 (By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
             )
         )
-        if (
-            "0"
-            not in driver.find_element(
+        have_results = re.compile("[1-9][0-9]*")
+        if have_results.match(
+            driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
             ).text
         ):
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_GridView1")
                 )
@@ -246,7 +246,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
 
         v = 1
         while v <= l:
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_GridView1")
                 )
@@ -258,7 +258,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 v
             ].find_elements(by=By.TAG_NAME, value=("td"))
             cells[0].click()
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
                 )
@@ -266,7 +266,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             codice_up = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
             ).get_attribute("value")
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
                 )
@@ -274,7 +274,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             codice_psv = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
             ).get_attribute("value")
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxVersione")
                 )
@@ -282,7 +282,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             versione = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxVersione"
             ).get_attribute("value")
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
                 )
@@ -296,7 +296,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 "%d/%m/%Y %H:%M:%S",
             ).strftime("%Y%m%d%H%M%S")
             date = str(year) + str(month)
-            WebDriverWait(driver, 10).until(
+            wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
                 )
