@@ -12,11 +12,18 @@ res = get_parameters(
 
 
 def get_db_connection():
+    for p in res["Parameters"]:
+        if "host" in p.get("Name"):
+            host = p.get("Value")
+        elif "password" in p.get("Name"):
+            password = p.get("Value")
+        elif "username" in p.get("Name"):
+            username = p.get("Value")
     return psycopg2.connect(
         database="datalake",
-        user=res["Parameters"][1].get("Value"),
-        password=res["Parameters"][2].get("Value"),
-        host=res["Parameters"][0].get("Value"),
+        user=username,
+        password=password,
+        host=host,
         port=5432,
         connect_timeout=3,
     )
