@@ -278,7 +278,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 (
                     driver.find_element(
                         By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna"
-                    )
+                    ).get_attribute("value")
                 ),
                 "%d/%m/%Y %H:%M:%S",
             ).strftime("%Y%m%d%H%M%S")
