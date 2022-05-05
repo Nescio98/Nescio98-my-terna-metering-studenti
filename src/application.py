@@ -106,7 +106,7 @@ def login(company):
         options.experimental_options["prefs"] = chrome_prefs
 
         driver = webdriver.Chrome(options=options)
-        wait = WebDriverWait(driver, 30)
+        wait = WebDriverWait(driver, 10)
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
         driver.find_element(
@@ -159,6 +159,7 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
 def donwload_metering(plants, p_number, is_relevant, company, driver):
     x = 0  # counter for not found plants
     y = 0  # counter for the number of plants
+    wait = WebDriverWait(driver, 30)
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
     year = date.strftime("%Y")
