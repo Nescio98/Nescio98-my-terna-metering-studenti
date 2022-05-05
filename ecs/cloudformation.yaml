@@ -158,7 +158,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
       Policies:
-        - PolicyName: !Sub ${EnvironmentName}-S3
+        - PolicyName: !Sub ${EnvironmentName}-my-terna-metering-S3
           PolicyDocument:
             {
               "Version": "2012-10-17",
@@ -173,6 +173,25 @@ Resources:
                     "Resource":
                       [
                         !Sub "arn:aws:s3:::ego-my-terna-metering/*"
+                      ]
+                  }
+                ]
+            }
+        - PolicyName: !Sub ${EnvironmentName}-my-terna-metering-ssm
+          PolicyDocument:
+            {
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action":
+                      [
+                        "ssm:GetParameters"
+                      ],
+                    "Resource":
+                      [
+                        !Sub "arn:aws:ssm:${DefaultRegion}:${AccountId}:parameter/*"
                       ]
                   }
                 ]
