@@ -14,9 +14,9 @@ res = get_parameters(
 def get_db_connection():
     return psycopg2.connect(
         database="datalake",
-        user=os.getenv(res[1].Value),
-        password=os.getenv(res[2].Value),
-        host=os.getenv(res[0].Value),
+        user=res[1].Value,
+        password=res[2].Value,
+        host=res[0].Value,
         port=5432,
         connect_timeout=3,
     )
