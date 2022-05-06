@@ -226,10 +226,13 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             )
         )
         have_results = re.compile("[1-9][0-9]*")
-        if have_results.match(
-            driver.find_element(
-                By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
-            ).text
+        if (
+            have_results.match(
+                driver.find_element(
+                    By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
+                ).text
+            )
+            != None
         ):
             wait.until(
                 EC.presence_of_element_located(
