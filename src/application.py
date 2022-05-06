@@ -225,7 +225,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 (By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
             )
         )
-        have_results = re.compile("[1-9][0-9]*")
+        have_results = re.compile(".*[1-9][0-9]*.*")
         if (
             have_results.match(
                 driver.find_element(
