@@ -165,15 +165,19 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
     if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
         os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
     driver.get("https://myterna.terna.it/metering/Home.aspx")
-    if len(plants) / 100 >= 1:
-        n = 100
+    # if len(plants) / 100 >= 1:
+    #     n = 100
+    if len(plants) / 2 >= 1:
+        n = 2
     else:
         n = len(plants)
-    x = 0
     for _ in range(0, n):
         p = plants.pop()
-        x = x + 1
-        logger.info("Searching plant {} ({} of {}).".format(p[0], x, p_number))
+        logger.info(
+            "Searching plant {} ({} of {}).".format(
+                p[0], found + not_found + 1, p_number
+            )
+        )
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
             plant_type = "UPR"
@@ -238,7 +242,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
             )
             != None
         ):
-        found = found+1
+            found = found + 1
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_GridView1")
