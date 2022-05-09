@@ -340,7 +340,8 @@ def main(l):
     for company in companies:
         to_do_plants, p_number = get_plants(True, company)
         if p_number != 0:
-            found, not_found = 0
+            found = 0
+            not_found = 0
             while len(to_do_plants) > 0:
                 driver = login(company)
                 try:
@@ -356,7 +357,8 @@ def main(l):
             logger.info("No metering for EGO Energy relevant plants!")
         to_do_plants, p_number = get_plants(False, company)
         if p_number != 0:
-            found, not_found = 0
+            found = 0
+            not_found = 0
             while len(to_do_plants) > 0:
                 driver = login(company)
                 try:
