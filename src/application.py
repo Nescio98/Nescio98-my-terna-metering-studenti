@@ -156,9 +156,7 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
     )
 
 
-def donwload_metering(plants, p_number, is_relevant, company, driver):
-    x = 0  # counter for not found plants
-    y = 0  # counter for the number of plants
+def donwload_metering(plants, p_number, is_relevant, company, driver, found, not_found):
     wait = WebDriverWait(driver, 30)
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
@@ -167,8 +165,13 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
     if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
         os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
     driver.get("https://myterna.terna.it/metering/Home.aspx")
-    for p in plants:
-        y = y + 1
+    if len(plants) / 100 >= 1:
+        n = 100
+    else:
+        n = len(plants)
+    for _ in range(0, n):
+        p = plants.pop()
+        found = found + 1
         logger.info("Searching plant {} ({} of {}).".format(p[0], y, p_number))
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
@@ -245,7 +248,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
             l = len(table.find_elements(by=By.CSS_SELECTOR, value="tr")) - 1
         else:
             logger.info("No data for plant: " + p[0])
-            x += 1
+            not_found += 1
             continue
 
         v = 1
@@ -324,10 +327,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver):
                 os.rename(r"" + DOWNLOAD_PATH + "/Curve_97686.txt", filename)
             driver.execute_script("window.history.go(-1)")
             v += 1
-
-    logger.info(
-        "Downloaded data of " + str(p_number - x) + "/" + str(p_number) + " plants"
-    )
+    return plants, found, not_found
 
 
 def main(l):
@@ -338,24 +338,38 @@ def main(l):
     start_watcher(DOWNLOAD_PATH)
     companies = ["EGO Energy", "EGO Data"]
     for company in companies:
-        driver = login(company)
-        try:
-            plants, p_number = get_plants(True, company)
-            if p_number != 0:
-                donwload_metering(
-                    plants, p_number, True, company, driver
-                )  # Download EGO Energy relevant metering
-            else:
-                logger.info("No metering for EGO Energy relevant plants!")
-            plants, p_number = get_plants(False, company)
-            if p_number != 0:
-                donwload_metering(
-                    plants, p_number, False, company, driver
-                )  # Download EGO Energy unrelevant metering
-            else:
-                logger.info("No metering for EGO Energy unrelevant plants!")
-        finally:
-            driver.close()
+        to_do_plants, p_number = get_plants(True, company)
+        if p_number != 0:
+            found, not_found = 0
+            while len(to_do_plants) > 0:
+                driver = login(company)
+                try:
+                    to_do_plants, found, not_found = donwload_metering(
+                        to_do_plants, p_number, True, company, driver, found, not_found
+                    )  # Download EGO Energy relevant metering
+                finally:
+                    driver.close()
+            logger.info(
+                "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
+            )
+        else:
+            logger.info("No metering for EGO Energy relevant plants!")
+        to_do_plants, p_number = get_plants(False, company)
+        if p_number != 0:
+            found, not_found = 0
+            while len(to_do_plants) > 0:
+                driver = login(company)
+                try:
+                    to_do_plants = donwload_metering(
+                        to_do_plants, p_number, False, company, driver, found, not_found
+                    )  # Download EGO Energy relevant metering
+                finally:
+                    driver.close()
+            logger.info(
+                "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
+            )
+        else:
+            logger.info("No metering for EGO Energy unrelevant plants!")
 
 
 if __name__ == "__main__":
