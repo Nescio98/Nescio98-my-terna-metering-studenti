@@ -172,7 +172,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
     for _ in range(0, n):
         p = plants.pop()
         found = found + 1
-        logger.info("Searching plant {} ({} of {}).".format(p[0], y, p_number))
+        )
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
             plant_type = "UPR"
