@@ -169,10 +169,11 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
         n = 100
     else:
         n = len(plants)
+    x = 0
     for _ in range(0, n):
         p = plants.pop()
-        found = found + 1
-        )
+        x = x + 1
+        logger.info("Searching plant {} ({} of {}).".format(p[0], x, p_number))
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
             plant_type = "UPR"
@@ -237,6 +238,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
             )
             != None
         ):
+        found = found+1
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_GridView1")
