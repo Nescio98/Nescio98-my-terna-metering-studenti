@@ -165,10 +165,8 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
     if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
         os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
     driver.get("https://myterna.terna.it/metering/Home.aspx")
-    # if len(plants) / 100 >= 1:
-    #     n = 100
-    if len(plants) / 2 >= 1:
-        n = 2
+    if len(plants) / 100 >= 1:
+        n = 100
     else:
         n = len(plants)
     for _ in range(0, n):
