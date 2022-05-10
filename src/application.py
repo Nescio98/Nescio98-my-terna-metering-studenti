@@ -163,8 +163,8 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
 
 def donwload_metering(plants, p_number, is_relevant, company, driver, found, not_found):
     wait = WebDriverWait(driver, 30)
-    currentDateTime = datetime.datetime.now()
-    date = currentDateTime.date()
+    current_date_time = datetime.datetime.now()
+    date = current_date_time.date()
     year = date.strftime("%Y")
     month = (date - relativedelta(months=2)).strftime("%m")
     if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):

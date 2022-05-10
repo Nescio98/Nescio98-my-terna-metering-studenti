@@ -23,6 +23,10 @@ Parameters:
     Type: String
   EGOEnergyPassword:
     Type: String
+  EGODataUserID:
+    Type: String
+  EGODataPassword:
+    Type: String
 Conditions:
   EnableProdScheduleRule: !Equals [!Ref EnvironmentName, prod]
 Resources:
@@ -122,6 +126,10 @@ Resources:
             - Name: EGO_ENERGY_USER_ID
               Value: !Sub ${EGOEnergyUserID}
             - Name: EGO_ENERGY_PASSWORD
+              Value: !Sub ${EGOEnergyPassword}
+            - Name: EGO_DATA_USER_ID
+              Value: !Sub ${EGOEnergyUserID}
+            - Name: EGO_DATA_PASSWORD
               Value: !Sub ${EGOEnergyPassword}
       Cpu: '2048'
       Memory: '4096'
