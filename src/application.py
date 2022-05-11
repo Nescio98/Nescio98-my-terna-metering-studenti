@@ -347,23 +347,6 @@ def main(l):
     start_watcher(DOWNLOAD_PATH)
     companies = ["EGO Energy", "EGO Data"]
     for company in companies:
-        to_do_plants, p_number = get_plants(False, company)
-        if p_number != 0:
-            found = 0
-            not_found = 0
-            while len(to_do_plants) > 0:
-                driver = login(company)
-                try:
-                    to_do_plants, found, not_found = donwload_metering(
-                        to_do_plants, p_number, False, company, driver, found, not_found
-                    )  # Download EGO Energy relevant metering
-                finally:
-                    driver.close()
-            logger.info(
-                "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
-            )
-        else:
-            logger.info("No metering for EGO Energy unrelevant plants!")
         to_do_plants, p_number = get_plants(True, company)
         if p_number != 0:
             found = 0
@@ -381,6 +364,23 @@ def main(l):
             )
         else:
             logger.info("No metering for EGO Energy relevant plants!")
+        to_do_plants, p_number = get_plants(False, company)
+        if p_number != 0:
+            found = 0
+            not_found = 0
+            while len(to_do_plants) > 0:
+                driver = login(company)
+                try:
+                    to_do_plants, found, not_found = donwload_metering(
+                        to_do_plants, p_number, False, company, driver, found, not_found
+                    )  # Download EGO Energy relevant metering
+                finally:
+                    driver.close()
+            logger.info(
+                "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
+            )
+        else:
+            logger.info("No metering for EGO Energy unrelevant plants!")
 
 
 if __name__ == "__main__":
