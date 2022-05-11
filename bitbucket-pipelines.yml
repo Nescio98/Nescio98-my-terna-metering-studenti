@@ -146,6 +146,8 @@ definitions: # AWS authentication variables are configured in workspace
               SecretKey=${AWS_SECRET_ACCESS_KEY} 
               EGOEnergyUserID=${EGOEnergy_UserID} 
               EGOEnergyPassword=${EGOEnergy_Password} 
+              EGODataUserID=${EGOData_UserID} 
+              EGODataPassword=${EGOData_Password} 
 
 pipelines:
   custom:
