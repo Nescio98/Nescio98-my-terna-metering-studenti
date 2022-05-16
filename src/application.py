@@ -322,6 +322,10 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
             ).click()
+            logger.debug(os.listdir(DOWNLOAD_PATH))
+            while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
+                sleep(1)
+            logger.debug(os.listdir(DOWNLOAD_PATH))
             downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
             downloaded_file = downloaded_file[0]
             if os.path.isfile(downloaded_file):
