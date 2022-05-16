@@ -321,9 +321,9 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
             ).click()
-            while not os.path.exists(DOWNLOAD_PATH + "/Curve_97686.txt"):
-                sleep(1)
-            if os.path.isfile(DOWNLOAD_PATH + "/Curve_97686.txt"):
+            downloaded_file = glob.glob(DOWNLOAD_PATH + "/Curve_*.txt")
+            downloaded_file = max(downloaded_file, key=os.path.getctime)
+            if os.path.isfile(downloaded_file):
                 filename = create_file_name(
                     plant_type,
                     date,
@@ -333,7 +333,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
                     validazione,
                     company,
                 )
-                os.rename(r"" + DOWNLOAD_PATH + "/Curve_97686.txt", filename)
+                os.rename(r"" + downloaded_file, filename)
             driver.execute_script("window.history.go(-1)")
             v += 1
     return plants, found, not_found
