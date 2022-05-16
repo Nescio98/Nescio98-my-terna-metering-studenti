@@ -128,9 +128,9 @@ Resources:
             - Name: EGO_ENERGY_PASSWORD
               Value: !Sub ${EGOEnergyPassword}
             - Name: EGO_DATA_USER_ID
-              Value: !Sub ${EGOEnergyUserID}
+              Value: !Sub ${EGODataUserID}
             - Name: EGO_DATA_PASSWORD
-              Value: !Sub ${EGOEnergyPassword}
+              Value: !Sub ${EGODataPassword}
       Cpu: '2048'
       Memory: '4096'
       NetworkMode: awsvpc
