@@ -166,7 +166,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
     year = date.strftime("%Y")
-    month = (date - relativedelta(months=2)).strftime("%m")
+    month = (date - relativedelta(months=1)).strftime("%m")
     if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
         os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
     driver.get("https://myterna.terna.it/metering/Home.aspx")
