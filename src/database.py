@@ -1,21 +1,33 @@
 import psycopg2
 import os
+from shared import *
 
-os.environ['db_hostname'] = "datalake-prod-eu-west-1b.cgeagqwpmv5k.eu-west-1.rds.amazonaws.com"
-os.environ['db_user'] = "datalake_admin"
-os.environ['db_password'] = "d0bDtpbjjyUrFycl"
+res = get_parameters(
+    [
+        "/prod/datalake/host",
+        "/prod/datalake/lambda/username",
+        "/prod/datalake/lambda/password",
+    ]
+)
 
 
 def get_db_connection():
+    for p in res["Parameters"]:
+        if "host" in p.get("Name"):
+            host = p.get("Value")
+        elif "password" in p.get("Name"):
+            password = p.get("Value")
+        elif "username" in p.get("Name"):
+            username = p.get("Value")
     return psycopg2.connect(
-            database="datalake",
-            user=os.getenv('db_user'),
-            password=os.getenv('db_password'),
-            host=os.getenv('db_hostname'),
-            port=5432,
-            connect_timeout=3        
-            )
+        database="datalake",
+        user=username,
+        password=password,
+        host=host,
+        port=5432,
+        connect_timeout=3,
+    )
+
+
 #     cursor = db.cursor()
 #     return db, cursor
-
-
