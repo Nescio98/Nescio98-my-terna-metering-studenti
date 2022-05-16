@@ -363,7 +363,7 @@ def main(l):
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
         else:
-            logger.info("No metering for EGO Energy relevant plants!")
+            logger.info("No metering for " + company + " relevant plants!")
         to_do_plants, p_number = get_plants(False, company)
         if p_number != 0:
             found = 0
@@ -380,7 +380,7 @@ def main(l):
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
         else:
-            logger.info("No metering for EGO Energy unrelevant plants!")
+            logger.info("No metering for " + company + "unrelevant plants!")
 
 
 if __name__ == "__main__":
