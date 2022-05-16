@@ -13,6 +13,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import selenium.common.exceptions as exceptions
+from glob2 import glob
 
 from selenium.webdriver.support import expected_conditions as EC
 import watchdog.events
@@ -321,7 +322,7 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
             ).click()
-            downloaded_file = glob.glob(DOWNLOAD_PATH + "/Curve_*.txt")
+            downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
             downloaded_file = max(downloaded_file, key=os.path.getctime)
             if os.path.isfile(downloaded_file):
                 filename = create_file_name(
