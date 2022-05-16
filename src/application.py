@@ -323,7 +323,6 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
                 by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
             ).click()
             downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
-            downloaded_file = max(downloaded_file, key=os.path.getctime)
             if os.path.isfile(downloaded_file):
                 filename = create_file_name(
                     plant_type,
