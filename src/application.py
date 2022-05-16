@@ -345,7 +345,7 @@ def main(l):
     if not os.path.exists(DOWNLOAD_PATH):
         os.makedirs(DOWNLOAD_PATH)
     start_watcher(DOWNLOAD_PATH)
-    companies = ["EGO Energy", "EGO Data"]
+    companies = ["EGO Data", "EGO Energy"]
     for company in companies:
         to_do_plants, p_number = get_plants(True, company)
         if p_number != 0:
