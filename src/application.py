@@ -140,8 +140,8 @@ def login(company):
 def create_file_name(plant_type, date, rup, x, version, validation, company):
     return (
         DOWNLOAD_PATH
-        + "/"
-        + company
+        + "/csv/"
+        + company.lower().replace(" ", "-")
         + "/"
         + date[:4]
         + "/"
@@ -168,8 +168,24 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
     date = current_date_time.date()
     year = date.strftime("%Y")
     month = (date - relativedelta(months=1)).strftime("%m")
-    if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
-        os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
+    if not os.path.exists(
+        DOWNLOAD_PATH
+        + "/csv/"
+        + company.lower().replace(" ", "-")
+        + "/"
+        + year
+        + "/"
+        + month
+    ):
+        os.makedirs(
+            DOWNLOAD_PATH
+            + "/csv/"
+            + company.lower().replace(" ", "-")
+            + "/"
+            + year
+            + "/"
+            + month
+        )
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     if len(plants) / 100 >= 1:
         n = 100
