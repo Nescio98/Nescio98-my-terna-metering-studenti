@@ -457,7 +457,6 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                     validazione,
                     company,
                 )
-
             v += 1
             driver.execute_script("window.history.go(-1)")
     return plants, found, not_found
