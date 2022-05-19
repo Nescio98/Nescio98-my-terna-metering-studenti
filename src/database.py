@@ -1,6 +1,6 @@
 import psycopg2
 import os
-from shared import *
+from shared import get_parameters
 
 res = get_parameters(
     [

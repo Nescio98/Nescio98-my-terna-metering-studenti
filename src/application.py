@@ -20,6 +20,7 @@ import watchdog.events
 import watchdog.observers
 import re
 from shared import upload_file
+from shared import *
 
 DOWNLOAD_PATH = "/tmp/measures"
 
@@ -236,7 +237,8 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
     )
 
 
-def donwload_metering(plants, p_number, is_relevant, company, driver, found, not_found):
+def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
+    driver = login(company)
     wait = WebDriverWait(driver, 30)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
@@ -470,13 +472,9 @@ def main(l):
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                driver = login(company)
-                try:
                     to_do_plants, found, not_found = donwload_metering(
-                        to_do_plants, p_number, True, company, driver, found, not_found
+                    to_do_plants, p_number, True, company, found, not_found
                     )  # Download EGO Energy relevant metering
-                finally:
-                    driver.close()
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
@@ -487,13 +485,9 @@ def main(l):
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                driver = login(company)
-                try:
                     to_do_plants, found, not_found = donwload_metering(
-                        to_do_plants, p_number, False, company, driver, found, not_found
+                    to_do_plants, p_number, False, company, found, not_found
                     )  # Download EGO Energy relevant metering
-                finally:
-                    driver.close()
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
@@ -502,4 +496,9 @@ def main(l):
 
 
 if __name__ == "__main__":
-    main()
+    (
+        formatter,
+        logger,
+        consoleLogger,
+    ) = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
+    main(logger)
