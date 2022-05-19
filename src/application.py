@@ -163,7 +163,7 @@ def db_get_downloaded_files(anno, mese, tipologia, dispacciato_da):
         measures = cursor.fetchall()
         if len(measures) > 0:
             res = set(list(zip(*measures))[0])
-        # res = [item for t in measures for item in t]
+            # res = [item for t in measures for item in t]
         else:
             res = None
     finally:
@@ -434,16 +434,16 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                         (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
                     )
                 )
-            logger.info("Downloading {} metering v.{}...".format(p[0], versione))
-            driver.find_element(
+                logger.info("Downloading {} metering v.{}...".format(p[0], versione))
+                driver.find_element(
                     by=By.ID,
                     value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-            ).click()
-            while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
-                sleep(1)
-            downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
-            downloaded_file = downloaded_file[0]
-            if os.path.isfile(downloaded_file):
+                ).click()
+                while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
+                    sleep(1)
+                downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
+                downloaded_file = downloaded_file[0]
+                if os.path.isfile(downloaded_file):
                     os.rename(r"" + downloaded_file, filename)
                 db_upload_measure(
                     os.path.basename(filename),
@@ -475,9 +475,9 @@ def main(l):
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                    to_do_plants, found, not_found = donwload_metering(
+                to_do_plants, found, not_found = donwload_metering(
                     to_do_plants, p_number, True, company, found, not_found
-                    )  # Download EGO Energy relevant metering
+                )  # Download EGO Energy relevant metering
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
@@ -488,9 +488,9 @@ def main(l):
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                    to_do_plants, found, not_found = donwload_metering(
+                to_do_plants, found, not_found = donwload_metering(
                     to_do_plants, p_number, False, company, found, not_found
-                    )  # Download EGO Energy relevant metering
+                )  # Download EGO Energy relevant metering
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
