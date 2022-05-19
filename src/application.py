@@ -161,8 +161,11 @@ def db_get_downloaded_files(anno, mese, tipologia, dispacciato_da):
 
         cursor.execute(query)
         measures = cursor.fetchall()
+        if len(measures) > 0:
+            res = set(list(zip(*measures))[0])
         # res = [item for t in measures for item in t]
-        res = set(list(zip(*measures))[0])
+        else:
+            res = None
     finally:
         cursor.close()
         db.close()
@@ -419,7 +422,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                 company,
             )
 
-            if os.path.basename(filename) in files:
+            if files != None and os.path.basename(filename) in files:
                 logger.info(
                     "Skipping metering for plant: {} because we have downloaded it yet.".format(
                         p[0]
