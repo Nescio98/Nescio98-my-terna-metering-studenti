@@ -429,7 +429,11 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                     )
                 )
             else:
-                wait.until(EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")))
+                wait.until(
+                    EC.presence_of_element_located(
+                        (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
+                    )
+                )
             logger.info("Downloading {} metering v.{}...".format(p[0], versione))
             driver.find_element(
                     by=By.ID,
