@@ -1,5 +1,5 @@
 from shared import *
-import application
+from application import main
 
 (
     formatter,
@@ -18,7 +18,7 @@ def run_task(event, context):
                 sys.argv, event, context
             )
         )
-        application.main(logger)
+        main(logger)
     except:
         logger.error("An error occurred during execution", exc_info=True)
         exit(1)

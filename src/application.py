@@ -13,12 +13,14 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import selenium.common.exceptions as exceptions
+from glob2 import glob
 
 from selenium.webdriver.support import expected_conditions as EC
 import watchdog.events
 import watchdog.observers
 import re
 from shared import upload_file
+from shared import *
 
 DOWNLOAD_PATH = "/tmp/measures"
 
@@ -93,6 +95,83 @@ def get_plants(is_relevant, company):
     return plants, p_number
 
 
+def db_upload_measure(
+    nome_file,
+    anno,
+    mese,
+    tipologia,
+    sapr,
+    codice_up,
+    codice_psv,
+    vers,
+    validazione,
+    dispacciato_da,
+):
+    try:
+        db = database.get_db_connection()
+        cursor = db.cursor()
+        query = (
+            'INSERT INTO terna."downloaded_measure_files" VALUES (\''
+            + nome_file
+            + "','"
+            + anno
+            + "','"
+            + mese
+            + "','"
+            + tipologia
+            + "','"
+            + sapr
+            + "','"
+            + codice_up
+            + "','"
+            + codice_psv
+            + "','"
+            + vers
+            + "','"
+            + validazione
+            + "','"
+            + dispacciato_da
+            + "')"
+        )
+        cursor.execute(query)
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+
+
+def db_get_downloaded_files(anno, mese, tipologia, dispacciato_da):
+    try:
+        db = database.get_db_connection()
+        cursor = db.cursor()
+        query = (
+            'SELECT "nome_file" FROM terna."downloaded_measure_files" WHERE "anno" = \''
+        )
+
+        query += (
+            anno
+            + "' AND \"mese\" = '"
+            + mese
+            + "' AND \"tipologia\" = '"
+            + tipologia
+            + "' AND \"dispacciato_da\" = '"
+            + dispacciato_da
+            + "';"
+        )
+
+        cursor.execute(query)
+        measures = cursor.fetchall()
+        if len(measures) > 0:
+            res = set(list(zip(*measures))[0])
+            # res = [item for t in measures for item in t]
+        else:
+            res = None
+    finally:
+        cursor.close()
+        db.close()
+    return res
+
+
 def login(company):
     logger.info("Login with " + company + " account.")
     access = False
@@ -139,8 +218,8 @@ def login(company):
 def create_file_name(plant_type, date, rup, x, version, validation, company):
     return (
         DOWNLOAD_PATH
-        + "/"
-        + company
+        + "/csv/"
+        + company.lower().replace(" ", "-")
         + "/"
         + date[:4]
         + "/"
@@ -161,14 +240,37 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
     )
 
 
-def donwload_metering(plants, p_number, is_relevant, company, driver, found, not_found):
+def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
+    driver = login(company)
     wait = WebDriverWait(driver, 30)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
     year = date.strftime("%Y")
     month = (date - relativedelta(months=1)).strftime("%m")
-    if not os.path.exists(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month):
-        os.makedirs(DOWNLOAD_PATH + "/" + company + "/" + year + "/" + month)
+    if is_relevant:
+        plant_type = "UPR"
+    else:
+        plant_type = "UPNR"
+    files = db_get_downloaded_files(year, month, plant_type, company)
+
+    if not os.path.exists(
+        DOWNLOAD_PATH
+        + "/csv/"
+        + company.lower().replace(" ", "-")
+        + "/"
+        + year
+        + "/"
+        + month
+    ):
+        os.makedirs(
+            DOWNLOAD_PATH
+            + "/csv/"
+            + company.lower().replace(" ", "-")
+            + "/"
+            + year
+            + "/"
+            + month
+        )
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     if len(plants) / 100 >= 1:
         n = 100
@@ -183,12 +285,10 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
         )
         if is_relevant:
             driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
-            plant_type = "UPR"
         else:
             driver.get(
                 "https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx"
             )
-            plant_type = "UPNR"
         wait.until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
         )
@@ -312,30 +412,53 @@ def donwload_metering(plants, p_number, is_relevant, company, driver, found, not
                 "%d/%m/%Y %H:%M:%S",
             ).strftime("%Y%m%d%H%M%S")
             date = str(year) + str(month)
-            wait.until(
-                EC.presence_of_element_located(
-                    (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
-                )
+            filename = create_file_name(
+                plant_type,
+                date,
+                codice_up,
+                codice_psv,
+                versione,
+                validazione,
+                company,
             )
-            logger.info("Downloading {} metering v.{}...".format(p[0], versione))
-            driver.find_element(
-                by=By.ID, value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
-            ).click()
-            while not os.path.exists(DOWNLOAD_PATH + "/Curve_97686.txt"):
-                sleep(1)
-            if os.path.isfile(DOWNLOAD_PATH + "/Curve_97686.txt"):
-                filename = create_file_name(
+
+            if files != None and os.path.basename(filename) in files:
+                logger.info(
+                    "Skipping metering for plant: {} because we have downloaded it yet.".format(
+                        p[0]
+                    )
+                )
+            else:
+                wait.until(
+                    EC.presence_of_element_located(
+                        (By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
+                    )
+                )
+                logger.info("Downloading {} metering v.{}...".format(p[0], versione))
+                driver.find_element(
+                    by=By.ID,
+                    value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
+                ).click()
+                while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
+                    sleep(1)
+                downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
+                downloaded_file = downloaded_file[0]
+                if os.path.isfile(downloaded_file):
+                    os.rename(r"" + downloaded_file, filename)
+                db_upload_measure(
+                    os.path.basename(filename),
+                    year,
+                    month,
                     plant_type,
-                    date,
+                    p[0],
                     codice_up,
                     codice_psv,
                     versione,
                     validazione,
                     company,
                 )
-                os.rename(r"" + DOWNLOAD_PATH + "/Curve_97686.txt", filename)
-            driver.execute_script("window.history.go(-1)")
             v += 1
+            driver.execute_script("window.history.go(-1)")
     return plants, found, not_found
 
 
@@ -344,44 +467,41 @@ def main(l):
     logger = l
     if not os.path.exists(DOWNLOAD_PATH):
         os.makedirs(DOWNLOAD_PATH)
-    start_watcher(DOWNLOAD_PATH)
     companies = ["EGO Data", "EGO Energy"]
+    start_watcher(DOWNLOAD_PATH)
     for company in companies:
         to_do_plants, p_number = get_plants(True, company)
         if p_number != 0:
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                driver = login(company)
-                try:
-                    to_do_plants, found, not_found = donwload_metering(
-                        to_do_plants, p_number, True, company, driver, found, not_found
-                    )  # Download EGO Energy relevant metering
-                finally:
-                    driver.close()
+                to_do_plants, found, not_found = donwload_metering(
+                    to_do_plants, p_number, True, company, found, not_found
+                )  # Download EGO Energy relevant metering
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
         else:
-            logger.info("No metering for EGO Energy relevant plants!")
+            logger.info("No metering for " + company + " relevant plants!")
         to_do_plants, p_number = get_plants(False, company)
         if p_number != 0:
             found = 0
             not_found = 0
             while len(to_do_plants) > 0:
-                driver = login(company)
-                try:
-                    to_do_plants, found, not_found = donwload_metering(
-                        to_do_plants, p_number, False, company, driver, found, not_found
-                    )  # Download EGO Energy relevant metering
-                finally:
-                    driver.close()
+                to_do_plants, found, not_found = donwload_metering(
+                    to_do_plants, p_number, False, company, found, not_found
+                )  # Download EGO Energy relevant metering
             logger.info(
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
         else:
-            logger.info("No metering for EGO Energy unrelevant plants!")
+            logger.info("No metering for " + company + "unrelevant plants!")
 
 
 if __name__ == "__main__":
-    main()
+    (
+        formatter,
+        logger,
+        consoleLogger,
+    ) = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
+    main(logger)
