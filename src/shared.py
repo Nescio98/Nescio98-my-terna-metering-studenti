@@ -10,9 +10,9 @@ from botocore.exceptions import ClientError
 # This variables are defined in serverless:
 # ENVIRONMENT
 # SERVICE_NAME
-ENVIRONMENT = os.environ['ENVIRONMENT']
-SERVICE_NAME = os.environ['SERVICE_NAME']
-REGION = os.environ['REGION']
+ENVIRONMENT = os.environ["ENVIRONMENT"]
+SERVICE_NAME = os.environ["SERVICE_NAME"]
+REGION = os.environ["REGION"]
 CONSOLE_LOGGER_LEVEL = logging.DEBUG
 LOGGER_LEVEL = logging.DEBUG
 EGO_LOGGER_LEVEL = 100  # logging.ERROR
@@ -30,32 +30,36 @@ class EGOHandler(StreamHandler):
 
 
 def deployToFargate():
-    client = boto3.client('ecs')
+    client = boto3.client("ecs")
     response = client.run_task(
-        cluster=f'default',
+        cluster=f"default",
         count=1,
         enableECSManagedTags=False,
-        launchType='FARGATE',
+        launchType="FARGATE",
         networkConfiguration={
-            'awsvpcConfiguration': {
-                'subnets': [
-                    'subnet-060126506e400d7cb', 'subnet-06144cb1fe1dbd38b', 'subnet-0a302591beab0099d'
+            "awsvpcConfiguration": {
+                "subnets": [
+                    "subnet-060126506e400d7cb",
+                    "subnet-06144cb1fe1dbd38b",
+                    "subnet-0a302591beab0099d",
                 ],
-                'securityGroups': [
-                    'sg-013ba8c102109773e',
+                "securityGroups": [
+                    "sg-013ba8c102109773e",
                 ],
-                'assignPublicIp': 'DISABLED'
+                "assignPublicIp": "DISABLED",
             }
         },
-        propagateTags='TASK_DEFINITION',
-        taskDefinition=f'prod-fargate-RunFromLambdaTest'
+        propagateTags="TASK_DEFINITION",
+        taskDefinition=f"prod-fargate-RunFromLambdaTest",
     )
     print(response)
 
 
-def initializeLogs(loggerLevel, consoleLoggerLevel, customLoggerLevel, logPath=None, fileName='amr'):
+def initializeLogs(
+    loggerLevel, consoleLoggerLevel, customLoggerLevel, logPath=None, fileName="amr"
+):
     # initializing logging formatter
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 
     # initializing logger
     logger = logging.getLogger(__name__)
@@ -75,23 +79,24 @@ def initializeLogs(loggerLevel, consoleLoggerLevel, customLoggerLevel, logPath=N
 
     logger.propagate = False
 
-    return (formatter, logger, consoleHandler,)
+    return (
+        formatter,
+        logger,
+        consoleHandler,
+    )
 
 
 def publish_event(message, logger):
-    payload = dict(
-        status=message,
-        foo_num=100
-    )
+    payload = dict(status=message, foo_num=100)
     Entries = [
         {
-            'Source': "{}.{}.{}".format(ENVIRONMENT, SERVICE_NAME, message),
-            'Detail': json.dumps(payload),
-            'EventBusName': 'default',
-            'DetailType': 'topic'
+            "Source": "{}.{}.{}".format(ENVIRONMENT, SERVICE_NAME, message),
+            "Detail": json.dumps(payload),
+            "EventBusName": "default",
+            "DetailType": "topic",
         },
     ]
-    client = boto3.client('events', region_name=REGION)
+    client = boto3.client("events", region_name=REGION)
     logger.debug("Published event: {0}".format(Entries))
     response = client.put_events(Entries=Entries)
     logger.debug("Response from AWS: {0}".format(response))
@@ -105,7 +110,7 @@ def upload_file(file_name, bucket, s3client, object_name=None):
 
     :param file_name: File to upload
     :param bucket: Bucket to upload to
-    :param s3client: Boto3 S3 client 
+    :param s3client: Boto3 S3 client
     :param object_name: S3 object name. If not specified then file_name is used
     :return: True if file was uploaded, else False
     """
@@ -130,8 +135,7 @@ def run(command, logger, log_stdout=True):
     :param logger: The logger object
     :param log_stdout: Optional, default value True, if True log output
     """
-    result = subprocess.run(command, shell=True,
-                            text=True, capture_output=True)
+    result = subprocess.run(command, shell=True, text=True, capture_output=True)
     logger.info(command)
     if result.returncode == 0:
         if log_stdout and result.stdout:
@@ -141,3 +145,12 @@ def run(command, logger, log_stdout=True):
         if result.stderr:
             logger.error(result.stderr)
         exit(1)
+
+
+def get_parameters(parameters):
+    """Get variables from AWS parameter store
+
+    :param parameters: List of parameters to retrieve
+    """
+    ssm_client = boto3.client("ssm", region_name=REGION)
+    return ssm_client.get_parameters(Names=parameters, WithDecryption=True)
