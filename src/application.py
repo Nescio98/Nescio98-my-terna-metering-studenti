@@ -1,26 +1,30 @@
+import os
+import re
+import datetime
+from dateutil.relativedelta import relativedelta
+from time import sleep
 from calendar import month
 from cmath import log
 from multiprocessing.connection import wait
-from time import sleep
-import datetime
-from dateutil.relativedelta import relativedelta
-import os
+from glob2 import glob
+
 import boto3
-import database
+import watchdog.events
+import watchdog.observers
+
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import selenium.common.exceptions as exceptions
-from glob2 import glob
-
 from selenium.webdriver.support import expected_conditions as EC
-import watchdog.events
-import watchdog.observers
-import re
+
+import database
+from shared import logger
 from shared import upload_file
 from shared import *
+
 
 DOWNLOAD_PATH = "/tmp/measures"
 
@@ -66,110 +70,6 @@ def start_watcher(src_path):
     observer.schedule(event_handler, path=src_path, recursive=True)
     observer.start()
     # observer.join()
-
-
-def get_plants(is_relevant, company):
-    try:
-        db = database.get_db_connection()
-        cursor = db.cursor()
-        query = (
-            'SELECT "CodiceSAPR" FROM zoho_crm."Impianti" WHERE "UnitàDisp.Come" = \''
-        )
-        query += (
-            company
-            + "' AND \"Rilevante\" = '"
-            + str(is_relevant).lower()
-            + "' AND \"AttualmenteDisp.Terna?\" = 'true'; "
-        )
-        cursor.execute(query)
-        plants = cursor.fetchall()
-        p_number = len(plants)
-        logger.info(
-            "Found {} {} {} plants".format(
-                p_number, company, "relevant" if is_relevant else "unrelevant"
-            )
-        )
-    finally:
-        cursor.close()
-        db.close()
-    return plants, p_number
-
-
-def db_upload_measure(
-    nome_file,
-    anno,
-    mese,
-    tipologia,
-    sapr,
-    codice_up,
-    codice_psv,
-    vers,
-    validazione,
-    dispacciato_da,
-):
-    try:
-        db = database.get_db_connection()
-        cursor = db.cursor()
-        query = (
-            'INSERT INTO terna."downloaded_measure_files" VALUES (\''
-            + nome_file
-            + "','"
-            + anno
-            + "','"
-            + mese
-            + "','"
-            + tipologia
-            + "','"
-            + sapr
-            + "','"
-            + codice_up
-            + "','"
-            + codice_psv
-            + "','"
-            + vers
-            + "','"
-            + validazione
-            + "','"
-            + dispacciato_da
-            + "')"
-        )
-        cursor.execute(query)
-        db.commit()
-    finally:
-        cursor.close()
-        db.close()
-
-
-def db_get_downloaded_files(anno, mese, tipologia, dispacciato_da):
-    try:
-        db = database.get_db_connection()
-        cursor = db.cursor()
-        query = (
-            'SELECT "nome_file" FROM terna."downloaded_measure_files" WHERE "anno" = \''
-        )
-
-        query += (
-            anno
-            + "' AND \"mese\" = '"
-            + mese
-            + "' AND \"tipologia\" = '"
-            + tipologia
-            + "' AND \"dispacciato_da\" = '"
-            + dispacciato_da
-            + "';"
-        )
-
-        cursor.execute(query)
-        measures = cursor.fetchall()
-        if len(measures) > 0:
-            res = set(list(zip(*measures))[0])
-            # res = [item for t in measures for item in t]
-        else:
-            res = None
-    finally:
-        cursor.close()
-        db.close()
-    return res
 
 
 def login(company):
@@ -251,7 +151,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
         plant_type = "UPR"
     else:
         plant_type = "UPNR"
-    files = db_get_downloaded_files(year, month, plant_type, company)
+    files = database.get_downloaded_files(year, month, plant_type, company)
 
     if not os.path.exists(
         DOWNLOAD_PATH
@@ -445,7 +345,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                 downloaded_file = downloaded_file[0]
                 if os.path.isfile(downloaded_file):
                     os.rename(r"" + downloaded_file, filename)
-                db_upload_measure(
+                database.upload_measure(
                     os.path.basename(filename),
                     year,
                     month,
@@ -462,15 +362,13 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
     return plants, found, not_found
 
 
-def main(l):
-    global logger
-    logger = l
+def main():
     if not os.path.exists(DOWNLOAD_PATH):
         os.makedirs(DOWNLOAD_PATH)
     companies = ["EGO Data", "EGO Energy"]
     start_watcher(DOWNLOAD_PATH)
     for company in companies:
-        to_do_plants, p_number = get_plants(True, company)
+        to_do_plants, p_number = database.get_plants(True, company)
         if p_number != 0:
             found = 0
             not_found = 0
@@ -483,7 +381,7 @@ def main(l):
             )
         else:
             logger.info("No metering for " + company + " relevant plants!")
-        to_do_plants, p_number = get_plants(False, company)
+        to_do_plants, p_number = database.get_plants(False, company)
         if p_number != 0:
             found = 0
             not_found = 0

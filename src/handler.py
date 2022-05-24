@@ -1,11 +1,6 @@
-from shared import *
+import sys
+from shared import logger
 from application import main
-
-(
-    formatter,
-    logger,
-    consoleLogger,
-) = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
 
 
 def run_task(event, context):
@@ -18,7 +13,7 @@ def run_task(event, context):
                 sys.argv, event, context
             )
         )
-        main(logger)
+        main()
     except:
         logger.error("An error occurred during execution", exc_info=True)
         exit(1)
