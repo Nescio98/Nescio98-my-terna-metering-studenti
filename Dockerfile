@@ -1,14 +1,4 @@
 FROM python:3.9
-#File to copy on container
-#NB: You have to insert those also on bitbucket-pipelines condition in order to create new image on file edit
-COPY requirements.txt  ./
-
-#Insert here app installation
-RUN pip install -r requirements.txt
-
-#Insert here app code
-COPY src/* ./
-
 
 # Adding trusting keys to apt for repositories
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
@@ -33,6 +23,16 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 
 # Set display port as an environment variable
 ENV DISPLAY=:99
+
+# File to copy inside the container
+# NB: You have to insert those also on bitbucket-pipelines condition in order to create the new image on file edit
+COPY requirements.txt  ./
+
+# Insert here app installation
+RUN pip install -r requirements.txt
+
+# Insert here app code
+COPY src/* ./
 
 ENTRYPOINT [ "python" ]
 CMD ["handler.py"]
