@@ -15,18 +15,11 @@ Parameters:
     Type: String
   ImageTag:
     Type: String
-  AccessKey:
+  Bucket:
     Type: String
-  SecretKey:
+  DownloadPath:
     Type: String
-  EGOEnergyUserID:
-    Type: String
-  EGOEnergyPassword:
-    Type: String
-  EGODataUserID:
-    Type: String
-  EGODataPassword:
-    Type: String
+    Default: /tmp/measures
 Conditions:
   EnableProdScheduleRule: !Equals [!Ref EnvironmentName, prod]
 Resources:
@@ -119,18 +112,10 @@ Resources:
               Value: !Sub ${ServiceName}
             - Name: REGION
               Value: !Sub ${DefaultRegion}
-            - Name: ACCESS_KEY
-              Value: !Sub ${AccessKey}
-            - Name: SECRET_KEY
-              Value: !Sub ${SecretKey}
-            - Name: EGO_ENERGY_USER_ID
-              Value: !Sub ${EGOEnergyUserID}
-            - Name: EGO_ENERGY_PASSWORD
-              Value: !Sub ${EGOEnergyPassword}
-            - Name: EGO_DATA_USER_ID
-              Value: !Sub ${EGODataUserID}
-            - Name: EGO_DATA_PASSWORD
-              Value: !Sub ${EGODataPassword}
+            - Name: BUCKET
+              Value: !Sub ${Bucket}
+            - Name: DOWNLOAD_PATH
+              Value: !Sub ${DownloadPath}
       Cpu: '2048'
       Memory: '4096'
       NetworkMode: awsvpc
@@ -165,44 +150,26 @@ Resources:
                   - events.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
-      Policies:
-        - PolicyName: !Sub ${EnvironmentName}-my-terna-metering-S3
-          PolicyDocument:
-            {
-              "Version": "2012-10-17",
-              "Statement":
-                [
-                  {
-                    "Effect": "Allow",
-                    "Action":
-                      [
-                        "s3:PutObject"
-                      ],
-                    "Resource":
-                      [
-                        !Sub "arn:aws:s3:::ego-my-terna-metering/*"
-                      ]
-                  }
-                ]
-            }
-        - PolicyName: !Sub ${EnvironmentName}-my-terna-metering-ssm
-          PolicyDocument:
-            {
-              "Version": "2012-10-17",
-              "Statement":
-                [
-                  {
-                    "Effect": "Allow",
-                    "Action":
-                      [
-                        "ssm:GetParameters"
-                      ],
-                    "Resource":
-                      [
-                        !Sub "arn:aws:ssm:${DefaultRegion}:${AccountId}:parameter/*"
-                      ]
-                  }
-                ]
-            }
       RoleName: !Sub ${EnvironmentName}-Fargate-my-terna-metering-Role
     Type: AWS::IAM::Role
+
+  TaskPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub ${EnvironmentName}--Fargate-${ServiceName}-Policy
+      PolicyDocument:
+        Statement:
+          - Action: ssm:GetParameters
+            Effect: Allow
+            Resource: !Sub 'arn:aws:ssm:${DefaultRegion}:${AccountId}:parameter/*'
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource:
+              - !Sub "arn:aws:s3:::${Bucket}/*"
+          - Action:
+              - s3:GetBucketLocation
+              - s3:ListBucket
+            Effect: Allow
+            Resource: !Sub 'arn:aws:s3:::${Bucket}'
+      Roles:
+        - Ref: TaskRole

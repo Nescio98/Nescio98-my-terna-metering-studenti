@@ -24,6 +24,9 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 # Set display port as an environment variable
 ENV DISPLAY=:99
 
+ENV BUCKET=""
+ENV DOWNLOAD_PATH=""
+
 # File to copy inside the container
 # NB: You have to insert those also on bitbucket-pipelines condition in order to create the new image on file edit
 COPY requirements.txt  ./

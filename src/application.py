@@ -21,12 +21,12 @@ import selenium.common.exceptions as exceptions
 from selenium.webdriver.support import expected_conditions as EC
 
 import database
-from shared import logger
-from shared import upload_file
+from shared import logger, upload_file, get_parameters
 from shared import *
 
 
-DOWNLOAD_PATH = "/tmp/measures"
+DOWNLOAD_PATH = os.environ["DOWNLOAD_PATH"]  # "/tmp/measures"
+DESTINATION_BUCKET = os.environ["BUCKET"]
 
 
 class Handler(watchdog.events.PatternMatchingEventHandler):
@@ -40,8 +40,9 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
         )
         self.s3 = boto3.client(
             "s3",
-            aws_access_key_id=os.environ["ACCESS_KEY"],
-            aws_secret_access_key=os.environ["SECRET_KEY"],
+            # TO DO: Credential must be removed. Access to S3 is granted with policy attached to the Task
+            # aws_access_key_id=os.environ["ACCESS_KEY"],
+            # aws_secret_access_key=os.environ["SECRET_KEY"],
         )
 
     # def on_created(self, event):
@@ -58,7 +59,7 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
         file = event.dest_path
         upload_file(
             file,
-            "ego-my-terna-metering",
+            DESTINATION_BUCKET,
             self.s3,
             file.replace(DOWNLOAD_PATH + "/", ""),
         )
@@ -72,7 +73,7 @@ def start_watcher(src_path):
     # observer.join()
 
 
-def login(company):
+def login(company: str, user_id: str, password: str):
     logger.info("Login with " + company + " account.")
     access = False
     while not access:
@@ -97,19 +98,20 @@ def login(company):
             by=By.CSS_SELECTOR, value="div.col-m-6:nth-child(1) > a:nth-child(1)"
         ).click()
         assert "MyTerna" in driver.title
+
         wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(
-            os.environ[company.upper().replace(" ", "_") + "_USER_ID"]
+            user_id
         )
 
         driver.find_element(by=By.NAME, value="password").send_keys(
-            os.environ[company.upper().replace(" ", "_") + "_PASSWORD"]
+           password
         )
         driver.find_element(by=By.NAME, value="login").click()
         try:
             wait.until(EC.presence_of_element_located((By.ID, "nameSurnameCustomer")))
             access = True
             logger.info("Logged in with " + company + " account.")
-        except:
+        except Exception as e:
             access = False
             driver.close()
     return driver
@@ -140,8 +142,35 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
     )
 
 
+def get_login_credentials(environment):
+    environment = 'prod'
+    parameter_names = [
+        f'/{environment}/myterna/ego-energy/user',
+        f'/{environment}/myterna/ego-energy/password',
+        f'/{environment}/myterna/ego-data/user',
+        f'/{environment}/myterna/ego-data/password',
+    ]
+    response = get_parameters(parameter_names)
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        parameters = {p['Name']:p['Value'] for p in response['Parameters']}
+        return parameters
+    else:
+        return {}
+
+
 def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
-    driver = login(company)
+    # TO DO: Spostare in application config
+    credentials = get_login_credentials(ENVIRONMENT)
+    
+    # userid = credentials[f'/{ENVIRONMENT}/myterna/{company.lower().replace(" ", "-")}/user']
+    # password = credentials[f'/{ENVIRONMENT}/myterna/{company.lower().replace(" ", "-")}/password']
+
+    userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
+    password = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/password']
+
+    # -------------------------------------
+
+    driver = login(company, userid, password)
     wait = WebDriverWait(driver, 30)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
@@ -153,24 +182,18 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
         plant_type = "UPNR"
     files = database.get_downloaded_files(year, month, plant_type, company)
 
-    if not os.path.exists(
+
+    os.makedirs(
         DOWNLOAD_PATH
         + "/csv/"
         + company.lower().replace(" ", "-")
         + "/"
         + year
         + "/"
-        + month
-    ):
-        os.makedirs(
-            DOWNLOAD_PATH
-            + "/csv/"
-            + company.lower().replace(" ", "-")
-            + "/"
-            + year
-            + "/"
-            + month
-        )
+        + month,
+        
+        exist_ok=True
+    )
     driver.get("https://myterna.terna.it/metering/Home.aspx")
     if len(plants) / 100 >= 1:
         n = 100
@@ -189,18 +212,21 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
             driver.get(
                 "https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx"
             )
+
         wait.until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
         ).select_by_value(year)
+
         wait.until(
             EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlMese"))
         )
         Select(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
         ).select_by_value(str(int(month)))
+
         if is_relevant:
             wait.until(
                 EC.presence_of_element_located(
@@ -221,6 +247,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                     by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
                 )
             ).select_by_value("UPNR_PUNTUALE")
+
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
@@ -274,6 +301,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                 v
             ].find_elements(by=By.TAG_NAME, value=("td"))
             cells[0].click()
+
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
@@ -282,6 +310,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
             codice_up = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
             ).get_attribute("value")
+
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
@@ -290,6 +319,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
             codice_psv = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
             ).get_attribute("value")
+
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxVersione")
@@ -298,6 +328,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
             versione = driver.find_element(
                 By.ID, "ctl00_cphMainPageMetering_tbxVersione"
             ).get_attribute("value")
+            
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
@@ -311,6 +342,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
                 ),
                 "%d/%m/%Y %H:%M:%S",
             ).strftime("%Y%m%d%H%M%S")
+
             date = str(year) + str(month)
             filename = create_file_name(
                 plant_type,
@@ -324,9 +356,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
 
             if files != None and os.path.basename(filename) in files:
                 logger.info(
-                    "Skipping metering for plant: {} because we have downloaded it yet.".format(
-                        p[0]
-                    )
+                    f"Skipping metering for plant: {p[0]} because we have already downloaded it."
                 )
             else:
                 wait.until(
@@ -363,8 +393,7 @@ def donwload_metering(plants, p_number, is_relevant, company, found, not_found):
 
 
 def main():
-    if not os.path.exists(DOWNLOAD_PATH):
-        os.makedirs(DOWNLOAD_PATH)
+    os.makedirs(DOWNLOAD_PATH, exist_ok=True)
     companies = ["EGO Data", "EGO Energy"]
     start_watcher(DOWNLOAD_PATH)
     for company in companies:
@@ -380,7 +409,7 @@ def main():
                 "Downloaded data of " + str(found) + "/" + str(p_number) + " plants"
             )
         else:
-            logger.info("No metering for " + company + " relevant plants!")
+            logger.info(f"No metering for {company} relevant plants!")
         to_do_plants, p_number = database.get_plants(False, company)
         if p_number != 0:
             found = 0
