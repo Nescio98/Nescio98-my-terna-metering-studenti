@@ -86,6 +86,9 @@ def initializeLogs(
     )
 
 
+_, logger, _  = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
+
+
 def publish_event(message, logger):
     payload = dict(status=message, foo_num=100)
     Entries = [
