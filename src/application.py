@@ -397,9 +397,4 @@ def main():
 
 
 if __name__ == "__main__":
-    (
-        formatter,
-        logger,
-        consoleLogger,
-    ) = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
-    main(logger)
+    main()
