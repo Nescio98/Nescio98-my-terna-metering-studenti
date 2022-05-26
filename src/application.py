@@ -21,12 +21,12 @@ import selenium.common.exceptions as exceptions
 from selenium.webdriver.support import expected_conditions as EC
 
 import database
-from shared import logger
-from shared import upload_file
+from shared import logger, upload_file, get_parameters
 from shared import *
 
 
-DOWNLOAD_PATH = "/tmp/measures"
+DOWNLOAD_PATH = os.environ["DOWNLOAD_PATH"]  # "/tmp/measures"
+DESTINATION_BUCKET = os.environ["BUCKET"]
 
 
 class Handler(watchdog.events.PatternMatchingEventHandler):
@@ -40,8 +40,9 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
         )
         self.s3 = boto3.client(
             "s3",
-            aws_access_key_id=os.environ["ACCESS_KEY"],
-            aws_secret_access_key=os.environ["SECRET_KEY"],
+            # TO DO: Credential must be removed. Access to S3 is granted with policy attached to the Task
+            # aws_access_key_id=os.environ["ACCESS_KEY"],
+            # aws_secret_access_key=os.environ["SECRET_KEY"],
         )
 
     def on_moved(self, event):
@@ -50,7 +51,7 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
         file = event.dest_path
         upload_file(
             file,
-            "ego-my-terna-metering",
+            DESTINATION_BUCKET,
             self.s3,
             file.replace(DOWNLOAD_PATH + "/", ""),
         )
@@ -64,14 +65,14 @@ def start_watcher(src_path):
     # observer.join()
 
 
-def login(company):
+def login(company: str, user_id: str, password: str):
     logger.info("Login with " + company + " account.")
     access = False
     while not access:
         options = Options()
         options.binary_location = "/usr/bin/google-chrome-stable"
         # options.binary_location = "/usr/bin/chromium"
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         chrome_prefs = {
@@ -89,19 +90,18 @@ def login(company):
             by=By.CSS_SELECTOR, value="div.col-m-6:nth-child(1) > a:nth-child(1)"
         ).click()
         assert "MyTerna" in driver.title
+
         wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(
-            os.environ[company.upper().replace(" ", "_") + "_USER_ID"]
+            user_id
         )
 
-        driver.find_element(by=By.NAME, value="password").send_keys(
-            os.environ[company.upper().replace(" ", "_") + "_PASSWORD"]
-        )
+        driver.find_element(by=By.NAME, value="password").send_keys(password)
         driver.find_element(by=By.NAME, value="login").click()
         try:
             wait.until(EC.presence_of_element_located((By.ID, "nameSurnameCustomer")))
             access = True
             logger.info("Logged in with " + company + " account.")
-        except:
+        except Exception as e:
             access = False
             driver.close()
     return driver
@@ -171,6 +171,7 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
                     by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
                 )
             ).select_by_value("UPNR_PUNTUALE")
+
             wait.until(
                 EC.presence_of_element_located(
                     (By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
@@ -206,6 +207,22 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
         logger.info("No data for plant: " + p[0])
     not_found += 1
     return 0, found, not_found
+
+
+def get_login_credentials(environment):
+    environment = "prod"
+    parameter_names = [
+        f"/{environment}/myterna/ego-energy/user",
+        f"/{environment}/myterna/ego-energy/password",
+        f"/{environment}/myterna/ego-data/user",
+        f"/{environment}/myterna/ego-data/password",
+    ]
+    response = get_parameters(parameter_names)
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        parameters = {p["Name"]: p["Value"] for p in response["Parameters"]}
+        return parameters
+    else:
+        return {}
 
 
 def get_metering_data(driver):
@@ -526,11 +543,20 @@ def main():
     date = current_date_time.date()
     year = date.strftime("%Y")
     month = date.strftime("%m")
+    # TO DO: Spostare in application config
+    credentials = get_login_credentials(ENVIRONMENT)
+
+    # userid = credentials[f'/{ENVIRONMENT}/myterna/{company.lower().replace(" ", "-")}/user']
+    # password = credentials[f'/{ENVIRONMENT}/myterna/{company.lower().replace(" ", "-")}/password']
     for company in companies:
+        userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
+        password = credentials[
+            f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
+        ]
         if HISTORY:
             logger.info("Downloading history metering for {}".format(company))
             for year in range(int(year) - 5, int(year) + 1):
-                driver = login(company)
+                driver = login(company, userid, password)
                 wait = WebDriverWait(driver, 30)
                 for month in range(1, 13):
                     if month < 10:
@@ -549,7 +575,7 @@ def main():
                 found = 0
                 not_found = 0
                 while len(to_do_plants) > 0:
-                    driver = login(company)
+                    driver = login(company, userid, password)
                     wait = WebDriverWait(driver, 30)
                     to_do_plants, found, not_found = donwload_meterings(
                         driver,
@@ -573,7 +599,7 @@ def main():
                 found = 0
                 not_found = 0
                 while len(to_do_plants) > 0:
-                    driver = login(company)
+                    driver = login(company, userid, password)
                     wait = WebDriverWait(driver, 30)
                     to_do_plants, found, not_found = donwload_meterings(
                         driver,

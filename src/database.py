@@ -30,26 +30,26 @@ def get_db_connection():
     )
 
 
-def get_plants(is_relevant, company):
+def get_plants(is_relevant: str, company: str):
     try:
         db = get_db_connection()
         cursor = db.cursor()
-        query = (
-            'SELECT "CodiceSAPR" FROM zoho_crm."Impianti" WHERE "UnitàDisp.Come" = \''
-        )
-        query += (
-            company
-            + "' AND \"Rilevante\" = '"
-            + str(is_relevant).lower()
-            + "' AND \"AttualmenteDisp.Terna?\" = 'true'; "
-        )
+
+        query = f"""
+          SELECT
+            "CodiceSAPR"
+          FROM
+            zoho_crm."Impianti"
+          WHERE
+            "UnitàDisp.Come" = '{company}'
+            AND "Rilevante" = {str(is_relevant).upper()}
+            AND "AttualmenteDisp.Terna?" = TRUE; """
+
         cursor.execute(query)
         plants = cursor.fetchall()
         p_number = len(plants)
         logger.info(
-            "Found {} {} {} plants".format(
-                p_number, company, "relevant" if is_relevant else "unrelevant"
-            )
+            f"Found {p_number} {company} {'relevant' if is_relevant else 'not relevant'} plants"
         )
     finally:
         cursor.close()
@@ -58,43 +58,33 @@ def get_plants(is_relevant, company):
 
 
 def upload_measure(
-    nome_file,
-    anno,
-    mese,
-    tipologia,
-    sapr,
-    codice_up,
-    codice_psv,
-    vers,
-    validazione,
-    dispacciato_da,
+    nome_file: str,
+    anno: int,
+    mese: int,
+    tipologia: str,
+    sapr: str,
+    codice_up: str,
+    codice_psv: str,
+    vers: str,
+    validazione: str,
+    dispacciato_da: str,
 ):
     try:
         db = get_db_connection()
         cursor = db.cursor()
-        query = (
-            'INSERT INTO terna."downloaded_measure_files" VALUES (\''
-            + nome_file
-            + "','"
-            + anno
-            + "','"
-            + mese
-            + "','"
-            + tipologia
-            + "','"
-            + sapr
-            + "','"
-            + codice_up
-            + "','"
-            + codice_psv
-            + "','"
-            + vers
-            + "','"
-            + validazione
-            + "','"
-            + dispacciato_da
-            + "')"
-        )
+        query = f"""
+          INSERT INTO terna."downloaded_measure_files" VALUES (
+            '{nome_file}',
+             {anno},
+             {mese},
+            '{tipologia}',
+            '{sapr}',
+            '{codice_up}',
+            '{codice_psv}',
+             {vers},
+             {validazione},
+            '{dispacciato_da}'; """
+
         cursor.execute(query)
         db.commit()
     finally:
@@ -102,24 +92,20 @@ def upload_measure(
         db.close()
 
 
-def get_downloaded_files(anno, mese, tipologia, dispacciato_da):
+def get_downloaded_files(anno: int, mese: int, tipologia: str, dispacciato_da: str):
     try:
         db = get_db_connection()
         cursor = db.cursor()
-        query = (
-            'SELECT "nome_file" FROM terna."downloaded_measure_files" WHERE "anno" = \''
-        )
-
-        query += (
-            str(anno)
-            + "' AND \"mese\" = '"
-            + str(mese)
-            + "' AND \"tipologia\" = '"
-            + str(tipologia)
-            + "' AND \"dispacciato_da\" = '"
-            + str(dispacciato_da)
-            + "';"
-        )
+        query = f"""
+          SELECT
+	        "nome_file"
+          FROM
+	        terna."downloaded_measure_files"
+          WHERE
+            "anno" = {anno}
+            AND mese = {mese}
+            AND "tipologia" = '{tipologia}'
+            AND "dispacciato_da" = '{dispacciato_da}'; """
 
         cursor.execute(query)
         measures = cursor.fetchall()
