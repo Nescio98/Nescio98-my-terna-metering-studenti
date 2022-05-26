@@ -111,13 +111,13 @@ def get_downloaded_files(anno, mese, tipologia, dispacciato_da):
         )
 
         query += (
-            anno
+            str(anno)
             + "' AND \"mese\" = '"
-            + mese
+            + str(mese)
             + "' AND \"tipologia\" = '"
-            + tipologia
+            + str(tipologia)
             + "' AND \"dispacciato_da\" = '"
-            + dispacciato_da
+            + str(dispacciato_da)
             + "';"
         )
 
@@ -125,7 +125,6 @@ def get_downloaded_files(anno, mese, tipologia, dispacciato_da):
         measures = cursor.fetchall()
         if len(measures) > 0:
             res = set(list(zip(*measures))[0])
-            # res = [item for t in measures for item in t]
         else:
             res = None
     finally:
