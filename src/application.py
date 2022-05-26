@@ -150,7 +150,7 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
     ).select_by_value(str(int(month)))
-    if not HYSTORY:
+    if not HISTORY:
         if is_relevant:
             wait.until(
                 EC.presence_of_element_located(
@@ -202,7 +202,7 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
             )
         )
         return l, found, not_found
-    elif not HYSTORY:
+    elif not HISTORY:
         logger.info("No data for plant: " + p[0])
     not_found += 1
     return 0, found, not_found
@@ -249,12 +249,72 @@ def get_metering_data(driver):
     return codice_up, codice_psv, versione, validazione, sapr
 
 
-def donwload_meterings(
-    company, year, month, is_relevant, plants=0, p_number=0, found=0, not_found=0
+def download(
+    driver,
+    files,
+    filename,
+    sapr,
+    versione,
+    year,
+    month,
+    plant_type,
+    codice_up,
+    codice_psv,
+    validazione,
+    company,
 ):
-    driver = login(company)
     wait = WebDriverWait(driver, 30)
-    if not HYSTORY:
+    if files != None and os.path.basename(filename) in files:
+        return False
+    else:
+        wait.until(
+            EC.presence_of_element_located(
+                (
+                    By.ID,
+                    "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
+                )
+            )
+        )
+        logger.info("Downloading {} metering v.{}...".format(sapr, versione))
+        driver.find_element(
+            by=By.ID,
+            value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
+        ).click()
+        while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
+            sleep(1)
+        downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
+        downloaded_file = downloaded_file[0]
+        if os.path.isfile(downloaded_file):
+            os.rename(r"" + downloaded_file, filename)
+        database.upload_measure(
+            os.path.basename(filename),
+            year,
+            month,
+            plant_type,
+            sapr,
+            codice_up,
+            codice_psv,
+            versione,
+            validazione,
+            company,
+        )
+    driver.execute_script("window.history.go(-1)")
+    return True
+
+
+def donwload_meterings(
+    driver,
+    wait,
+    company,
+    year,
+    month,
+    is_relevant,
+    plants=0,
+    p_number=0,
+    found=0,
+    not_found=0,
+):
+    if not HISTORY:
         month = (
             datetime.datetime.strptime(month, "%m") - relativedelta(months=1)
         ).strftime("%m")
@@ -275,8 +335,8 @@ def donwload_meterings(
         exist_ok=True,
     )
     driver.get("https://myterna.terna.it/metering/Home.aspx")
-    if HYSTORY:
-        res, _, not_found = search_meterings(driver, year, month, is_relevant)
+    if HISTORY:
+        res, _, _ = search_meterings(driver, year, month, is_relevant)
         if res > 0:
             wait.until(
                 EC.presence_of_element_located(
@@ -287,8 +347,8 @@ def donwload_meterings(
                 by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
             )
             if len(table.find_elements(by=By.CSS_SELECTOR, value="tr")) > 0:
-                x = 1  # cycle on pages
-                i = 1  # cycle on page results
+                x = 1  # cycle throught pages
+                i = 1  # cycle throught page results
                 has_next_page = True
                 new_metering = True
                 while new_metering:
@@ -312,7 +372,8 @@ def donwload_meterings(
                             has_next_page = False
                     wait.until(
                         EC.presence_of_element_located(
-                            (By.ID, "ctl00_cphMainPageMetering_GridView1")
+                            By.XPATH,
+                            value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
                         )
                     )
                     res = driver.find_elements(
@@ -334,7 +395,8 @@ def donwload_meterings(
                         page.click()
                     wait.until(
                         EC.presence_of_element_located(
-                            (By.ID, "ctl00_cphMainPageMetering_GridView1")
+                            By.XPATH,
+                            value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
                         )
                     )
                     res = driver.find_elements(
@@ -362,44 +424,28 @@ def donwload_meterings(
                         company,
                     )
 
-                    if files != None and os.path.basename(filename) in files:
-                        new_metering = False
-                    else:
-                        wait.until(
-                            EC.presence_of_element_located(
-                                (
-                                    By.ID,
-                                    "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-                                )
+                    if not download(
+                        driver,
+                        files,
+                        filename,
+                        sapr,
+                        versione,
+                        year,
+                        month,
+                        plant_type,
+                        codice_up,
+                        codice_psv,
+                        validazione,
+                        company,
+                    ):
+                        logger.info(
+                            "Didn't found new {} metering for company {}, year {}, month {}".format(
+                                plant_type, company, year, month
                             )
                         )
-                        logger.info(
-                            "Downloading {} metering v.{}...".format(sapr, versione)
-                        )
-                        driver.find_element(
-                            by=By.ID,
-                            value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-                        ).click()
-                        while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
-                            sleep(1)
-                        downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
-                        downloaded_file = downloaded_file[0]
-                        if os.path.isfile(downloaded_file):
-                            os.rename(r"" + downloaded_file, filename)
-                        database.upload_measure(
-                            os.path.basename(filename),
-                            year,
-                            month,
-                            plant_type,
-                            sapr,
-                            codice_up,
-                            codice_psv,
-                            versione,
-                            validazione,
-                            company,
-                        )
-                    driver.execute_script("window.history.go(-1)")
+                        new_metering = False
                     i += 1
+                return plants, found, not_found
         else:
             logger.info(
                 "Didn't found any metering for company {}, type {}, year {}, month {}".format(
@@ -450,52 +496,26 @@ def donwload_meterings(
                         company,
                     )
 
-                    if files != None and os.path.basename(filename) in files:
-                        logger.info(
-                            "Skipping metering for plant: {} because we have downloaded it yet.".format(
-                                p[0]
-                            )
-                        )
-                    else:
-                        wait.until(
-                            EC.presence_of_element_located(
-                                (
-                                    By.ID,
-                                    "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-                                )
-                            )
-                        )
-                        logger.info(
-                            "Downloading {} metering v.{}...".format(p[0], versione)
-                        )
-                        driver.find_element(
-                            by=By.ID,
-                            value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-                        ).click()
-                        while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
-                            sleep(1)
-                        downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
-                        downloaded_file = downloaded_file[0]
-                        if os.path.isfile(downloaded_file):
-                            os.rename(r"" + downloaded_file, filename)
-                        database.upload_measure(
-                            os.path.basename(filename),
-                            year,
-                            month,
-                            plant_type,
-                            p[0],
-                            codice_up,
-                            codice_psv,
-                            versione,
-                            validazione,
-                            company,
-                        )
+                    if not download(
+                        driver,
+                        files,
+                        filename,
+                        p[0],
+                        versione,
+                        year,
+                        month,
+                        plant_type,
+                        codice_up,
+                        codice_psv,
+                        validazione,
+                        company,
+                    ):
+                        logger.info("Skipping {} ".format(filename))
                     v += 1
-                    driver.execute_script("window.history.go(-1)")
         return plants, found, not_found
 
 
-HYSTORY = True
+HISTORY = False
 
 
 def main():
@@ -507,14 +527,16 @@ def main():
     year = date.strftime("%Y")
     month = date.strftime("%m")
     for company in companies:
-        if HYSTORY:
+        if HISTORY:
             logger.info("Downloading history metering for {}".format(company))
             for year in range(int(year) - 5, int(year) + 1):
+                driver = login(company)
+                wait = WebDriverWait(driver, 30)
                 for month in range(1, 13):
                     if month < 10:
                         month = "0" + str(month)
-                    plants, found, not_found = donwload_meterings(
-                        company, str(year), str(month), True
+                    _, found, not_found = donwload_meterings(
+                        driver, wait, company, str(year), str(month), True
                     )
                     logger.info("Found {} plants for {}/{}".format(found, month, year))
                     logger.info(
@@ -527,7 +549,11 @@ def main():
                 found = 0
                 not_found = 0
                 while len(to_do_plants) > 0:
+                    driver = login(company)
+                    wait = WebDriverWait(driver, 30)
                     to_do_plants, found, not_found = donwload_meterings(
+                        driver,
+                        wait,
                         company,
                         year,
                         month,
@@ -547,7 +573,11 @@ def main():
                 found = 0
                 not_found = 0
                 while len(to_do_plants) > 0:
+                    driver = login(company)
+                    wait = WebDriverWait(driver, 30)
                     to_do_plants, found, not_found = donwload_meterings(
+                        driver,
+                        wait,
                         company,
                         year,
                         month,
