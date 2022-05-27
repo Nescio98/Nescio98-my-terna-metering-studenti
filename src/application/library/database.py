@@ -83,7 +83,7 @@ def write_measure(
             '{codice_psv}',
              {vers},
              {validazione},
-            '{dispacciato_da}' """
+            '{dispacciato_da}') """
 
         cursor.execute(query)
         db.commit()
