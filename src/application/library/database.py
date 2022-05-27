@@ -2,7 +2,7 @@ import psycopg2
 
 from ..library.shared import get_parameters, logger
 
-
+# TODO: Da muovere in un helper
 res = get_parameters(
     [
         "/prod/datalake/host",
@@ -11,8 +11,7 @@ res = get_parameters(
     ]
 )
 
-
-def get_db_connection():
+def get_aws_param():
     for p in res["Parameters"]:
         if "host" in p.get("Name"):
             host = p.get("Value")
@@ -20,6 +19,11 @@ def get_db_connection():
             password = p.get("Value")
         elif "username" in p.get("Name"):
             username = p.get("Value")
+
+    return (host, username, password)
+
+# TODO: Da rivedere (mi riconnetto ogni volta o riutilizzo la stessa connessione?)
+def get_db_connection(host:str, username:str, password:str):
     return psycopg2.connect(
         database="datalake",
         user=username,
@@ -32,7 +36,7 @@ def get_db_connection():
 
 def get_plants(is_relevant: str, company: str):
     try:
-        db = get_db_connection()
+        db = get_db_connection(*get_aws_param())
         cursor = db.cursor()
 
         query = f"""
@@ -70,7 +74,7 @@ def write_measure(
     dispacciato_da: str,
 ):
     try:
-        db = get_db_connection()
+        db = get_db_connection(*get_aws_param())
         cursor = db.cursor()
         query = f"""
           INSERT INTO terna."downloaded_measure_files" VALUES (
@@ -94,7 +98,7 @@ def write_measure(
 
 def get_downloaded_files(anno: int, mese: int, tipologia: str, dispacciato_da: str):
     try:
-        db = get_db_connection()
+        db = get_db_connection(*get_aws_param())
         cursor = db.cursor()
         query = f"""
           SELECT
@@ -117,7 +121,3 @@ def get_downloaded_files(anno: int, mese: int, tipologia: str, dispacciato_da: s
         cursor.close()
         db.close()
     return res
-
-
-#     cursor = db.cursor()
-#     return db, cursor

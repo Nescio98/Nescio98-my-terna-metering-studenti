@@ -24,26 +24,29 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 # Set display port as an environment variable
 ENV DISPLAY=:99
 
-ENV ENVIRONMENT="staging"
-ENV SERVICE_NAME="my-terna-metering"
-ENV REGION="eu-west-1"
+# Turns off buffering for easier container logging
+ENV PYTHONUNBUFFERED=1
 
-ENV AWS_ACCESS_KEY_ID=""
-ENV AWS_SECRET_ACCESS_KEY=""
-ENV AWS_DEFAULT_REGION="eu-west-1"
-
-ENV BUCKET="ego-fabio-123"
-ENV DOWNLOAD_PATH="measures"
 # Keeps Python from generating .pyc files in the container
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
-
 # Install pip requirements
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
+
+
+ENV ENVIRONMENT="staging"
+ENV SERVICE_NAME="my-terna-metering"
+ENV REGION="eu-west-1"
+
+ENV BUCKET=""
+ENV DOWNLOAD_PATH="measures"
+
+ENV AWS_ACCESS_KEY_ID=""
+ENV AWS_SECRET_ACCESS_KEY=""
+ENV AWS_SESSION_TOKEN=""
+ENV AWS_DEFAULT_REGION="eu-west-1"
 
 WORKDIR /app
 COPY . /app

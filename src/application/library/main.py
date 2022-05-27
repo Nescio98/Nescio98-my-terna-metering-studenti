@@ -29,6 +29,24 @@ DOWNLOAD_PATH = os.environ["DOWNLOAD_PATH"]  # "/tmp/measures"
 DESTINATION_BUCKET = os.environ["BUCKET"]
 HISTORY = True
 ENVIRONMENT = "prod"
+COMPANIES = ["EGO Energy", "EGO Data"]
+
+
+# TODO: spostare in un helper
+def get_login_credentials(environment):
+    environment = "prod"
+    parameter_names = [
+        f"/{environment}/myterna/ego-energy/user",
+        f"/{environment}/myterna/ego-energy/password",
+        f"/{environment}/myterna/ego-data/user",
+        f"/{environment}/myterna/ego-data/password",
+    ]
+    response = get_parameters(parameter_names)
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        parameters = {p["Name"]: p["Value"] for p in response["Parameters"]}
+        return parameters
+    else:
+        return {}
 
 
 class Handler(watchdog.events.PatternMatchingEventHandler):
@@ -67,45 +85,57 @@ def start_watcher(src_path):
     # observer.join()
 
 
+def get_driver_options():
+    options = Options()
+    options.binary_location = "/usr/bin/google-chrome-stable"
+    # options.binary_location = "/usr/bin/chromium"
+
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    chrome_prefs = {
+        "download.default_directory": DOWNLOAD_PATH,
+        "javascript.enabled": False,
+    }
+    chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    options.experimental_options["prefs"] = chrome_prefs
+
+    return options
+
+
+def wait_element(wait:WebDriverWait, by:By, element_id:str):
+    return wait.until(EC.presence_of_element_located((by, element_id)))
+
+
 def login(company: str, user_id: str, password: str):
     logger.info("Login with " + company + " account.")
     access = False
     while not access:
-        options = Options()
-        options.binary_location = "/usr/bin/google-chrome-stable"
-        # options.binary_location = "/usr/bin/chromium"
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        chrome_prefs = {
-            "download.default_directory": DOWNLOAD_PATH,
-            "javascript.enabled": False,
-        }
-        chrome_prefs["profile.default_content_settings"] = {"images": 2}
-        options.experimental_options["prefs"] = chrome_prefs
+        #TODO: Spostare questa riga fuori dal loop?
+        driver = webdriver.Chrome(options=get_driver_options())
 
-        driver = webdriver.Chrome(options=options)
         wait = WebDriverWait(driver, 10)
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
-        driver.find_element(
-            by=By.CSS_SELECTOR, value="div.col-m-6:nth-child(1) > a:nth-child(1)"
+        driver.find_element(by=By.CSS_SELECTOR,
+            value="div.col-m-6:nth-child(1) > a:nth-child(1)"
         ).click()
         assert "MyTerna" in driver.title
 
-        wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(
-            user_id
-        )
+        wait_element(wait, By.NAME, "userid").send_keys(user_id)
+        # wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
 
         driver.find_element(by=By.NAME, value="password").send_keys(password)
         driver.find_element(by=By.NAME, value="login").click()
         try:
-            wait.until(EC.presence_of_element_located((By.ID, "nameSurnameCustomer")))
+            wait_element(wait, By.ID, "nameSurnameCustomer")
             access = True
-            logger.info("Logged in with " + company + " account.")
+            logger.info(f"Logged in with {company} account.")
         except Exception as e:
             access = False
             driver.close()
+            # TODO: Log exception?
     return driver
 
 
@@ -140,64 +170,49 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
         driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
     else:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx")
-    wait.until(
-        EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlAnno"))
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlAnno")
+
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
     ).select_by_value(year)
-    wait.until(
-        EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_ddlMese"))
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlMese")
+
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
     ).select_by_value(str(int(month)))
+
     if not HISTORY:
         if is_relevant:
-            wait.until(
-                EC.presence_of_element_located(
-                    (By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
-                )
-            )
+            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
             ).send_keys(p)
         else:
-            wait.until(
-                EC.presence_of_element_located(
-                    (By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
-                )
-            )
+            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
             Select(
                 driver.find_element(
                     by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
                 )
             ).select_by_value("UPNR_PUNTUALE")
 
-            wait.until(
-                EC.presence_of_element_located(
-                    (By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
-                )
-            )
-            driver.find_element(
-                by=By.ID, value="ctl00_cphMainPageMetering_txtCodiceUPDesc"
-            ).send_keys(p)
+            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
+
+            driver.find_element(by=By.ID,
+                value="ctl00_cphMainPageMetering_txtCodiceUPDesc").send_keys(p)
+
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_rbTutte").click()
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
-    wait.until(
-        EC.presence_of_element_located(
-            (By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
-        )
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
+
     have_results = re.compile(".*[1-9]\d*.*")
-    if (
-        have_results.match(
-            driver.find_element(
-                By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
-            ).text
-        )
-        != None
-    ):
+    if have_results.match(
+        driver.find_element(
+            By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati"
+        ).text
+    ) != None:
         found = found + 1
         l = len(
             driver.find_elements(
@@ -210,50 +225,30 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
     not_found += 1
     return 0, found, not_found
 
-# TODO: spostare in un helper
-def get_login_credentials(environment):
-    environment = "prod"
-    parameter_names = [
-        f"/{environment}/myterna/ego-energy/user",
-        f"/{environment}/myterna/ego-energy/password",
-        f"/{environment}/myterna/ego-data/user",
-        f"/{environment}/myterna/ego-data/password",
-    ]
-    response = get_parameters(parameter_names)
-    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-        parameters = {p["Name"]: p["Value"] for p in response["Parameters"]}
-        return parameters
-    else:
-        return {}
-
 
 def get_metering_data(driver):
     wait = WebDriverWait(driver, 30)
-    wait.until(
-        EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"))
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
+
     codice_up = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
     ).get_attribute("value")
-    wait.until(
-        EC.presence_of_element_located(
-            (By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
-        )
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
+
     codice_psv = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
     ).get_attribute("value")
-    wait.until(
-        EC.presence_of_element_located((By.ID, "ctl00_cphMainPageMetering_tbxVersione"))
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
+
     versione = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxVersione"
     ).get_attribute("value")
-    wait.until(
-        EC.presence_of_element_located(
-            (By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
-        )
-    )
+
+    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
+
     validazione = datetime.datetime.strptime(
         (
             driver.find_element(
@@ -262,9 +257,11 @@ def get_metering_data(driver):
         ),
         "%d/%m/%Y %H:%M:%S",
     ).strftime("%Y%m%d%H%M%S")
+
     sapr = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxImpiantoCod"
     ).get_attribute("value")
+
     return codice_up, codice_psv, versione, validazione, sapr
 
 
@@ -287,25 +284,25 @@ def download(
         driver.execute_script("window.history.go(-1)")
         return False
     else:
-        wait.until(
-            EC.presence_of_element_located(
-                (
-                    By.ID,
-                    "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
-                )
-            )
-        )
+
+        wait_element(wait, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
+
         logger.info("Downloading {} metering v.{}...".format(sapr, versione))
+
         driver.find_element(
             by=By.ID,
             value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
         ).click()
+
         while len(glob(DOWNLOAD_PATH + "/Curve_*.txt")) <= 0:
             sleep(1)
+
         downloaded_file = glob(DOWNLOAD_PATH + "/Curve_*.txt")
         downloaded_file = downloaded_file[0]
+
         if os.path.isfile(downloaded_file):
             os.rename(r"" + downloaded_file, filename)
+
         write_measure(
             os.path.basename(filename),
             year,
@@ -350,14 +347,13 @@ def donwload_meterings(
     if HISTORY:
         res, _, _ = search_meterings(driver, year, month, is_relevant)
         if res > 0:
-            wait.until(
-                EC.presence_of_element_located(
-                    (By.ID, "ctl00_cphMainPageMetering_GridView1")
-                )
-            )
+
+            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_GridView1")
+
             table = driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
             )
+
             if len(table.find_elements(by=By.CSS_SELECTOR, value="tr")) > 0:
                 x = 1  # cycle throught pages
                 i = 1  # cycle throught page results
@@ -365,39 +361,30 @@ def donwload_meterings(
                 new_metering = True
                 while new_metering:
                     while has_next_page:
-                        wait.until(
-                            EC.presence_of_element_located(
-                                (
-                                    By.XPATH,
-                                    '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]',
-                                )
-                            )
-                        )
+
+                        wait_element(wait, By.XPATH,
+                            '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]')
+
                         last_page = driver.find_element(
                             By.XPATH,
                             value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]',
                         )
+
                         if last_page.text == "...":
                             last_page.click()
                         else:
                             last_page.click()
                             has_next_page = False
-                    wait.until(
-                        EC.presence_of_element_located(
-                            (
-                                By.XPATH,
-                                '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[1]',
-                            )
-                        )
-                    )
+
+                    wait_element(wait, By.XPATH,
+                        '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[1]')
+
                     res = driver.find_elements(
                         By.XPATH,
                         value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
                     )
                     res = res[1:-1]
-                    if (
-                        len(res) - i < 0
-                    ):  # if there are no more results on the page then go previous page
+                    if (len(res) - i < 0):  # if there are no more results on the page then go previous page
                         page = driver.find_element(
                             By.XPATH,
                             value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()-'
@@ -407,14 +394,10 @@ def donwload_meterings(
                         x += 1
                         i = 1
                         page.click()
-                    wait.until(
-                        EC.presence_of_element_located(
-                            (
-                                By.XPATH,
-                                '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
-                            )
-                        )
-                    )
+
+                    wait_element(wait, By.XPATH,
+                        '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr')
+
                     res = driver.find_elements(
                         By.XPATH,
                         value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
@@ -429,16 +412,11 @@ def donwload_meterings(
                         validazione,
                         sapr,
                     ) = get_metering_data(driver)
+
                     date = year + month
-                    filename = create_file_name(
-                        plant_type,
-                        date,
-                        codice_up,
-                        codice_psv,
-                        versione,
-                        validazione,
-                        company,
-                    )
+
+                    filename = create_file_name(plant_type, date, codice_up,
+                                                codice_psv, versione, validazione, company)
 
                     if not download(
                         driver,
@@ -486,11 +464,9 @@ def donwload_meterings(
             if res > 0:
                 v = 1
                 while v < res:
-                    wait.until(
-                        EC.presence_of_element_located(
-                            (By.ID, "ctl00_cphMainPageMetering_GridView1")
-                        )
-                    )
+
+                    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_GridView1")
+
                     table = driver.find_element(
                         by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
                     )
@@ -501,16 +477,11 @@ def donwload_meterings(
                     codice_up, codice_psv, versione, validazione, _ = get_metering_data(
                         driver
                     )
+
                     date = year + month
-                    filename = create_file_name(
-                        plant_type,
-                        date,
-                        codice_up,
-                        codice_psv,
-                        versione,
-                        validazione,
-                        company,
-                    )
+
+                    filename = create_file_name(plant_type, date, codice_up,
+                        codice_psv, versione, validazione, company)
 
                     if not download(
                         driver,
@@ -560,7 +531,7 @@ def get_metering(relevant: bool, company: str, year: int, month: int,userid: str
 
 def run():
     os.makedirs(DOWNLOAD_PATH, exist_ok=True)
-    companies = ["EGO Energy", "EGO Data"]
+    companies = COMPANIES
     start_watcher(DOWNLOAD_PATH)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
@@ -577,7 +548,7 @@ def run():
             f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
         ]
         if HISTORY:
-            logger.info("Downloading history metering for {}".format(company))
+            logger.info(f"Downloading history metering for {company}")
             for year in range(int(year) - 5, int(year) + 1):
                 driver = login(company, userid, password)
                 wait = WebDriverWait(driver, 30)
