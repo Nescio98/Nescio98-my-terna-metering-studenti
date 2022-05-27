@@ -1,6 +1,6 @@
 import psycopg2
 
-from shared import get_parameters, logger
+from ..library.shared import get_parameters, logger
 
 
 res = get_parameters(
@@ -57,7 +57,7 @@ def get_plants(is_relevant: str, company: str):
     return plants, p_number
 
 
-def upload_measure(
+def write_measure(
     nome_file: str,
     anno: int,
     mese: int,
@@ -83,7 +83,7 @@ def upload_measure(
             '{codice_psv}',
              {vers},
              {validazione},
-            '{dispacciato_da}'; """
+            '{dispacciato_da}' """
 
         cursor.execute(query)
         db.commit()
