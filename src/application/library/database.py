@@ -78,7 +78,6 @@ def write_measure(
 ):
     try:
         dt = datetime.now()
-        ts = datetime.timestamp(dt)
         db = get_db_connection(*get_aws_param())
         cursor = db.cursor()
         query = f"""
@@ -93,7 +92,7 @@ def write_measure(
              {vers},
              {validazione},
             '{dispacciato_da}',
-            '{ts}') """
+            '{dt}') """
 
         cursor.execute(query)
         db.commit()
