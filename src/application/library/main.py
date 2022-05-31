@@ -104,7 +104,8 @@ def get_driver_options():
     return options
 
 
-def wait_element(wait:WebDriverWait, by:By, element_id:str):
+def wait_element(driver:webdriver, by:By, element_id:str):
+    wait = WebDriverWait(driver, 30)
     return wait.until(EC.presence_of_element_located((by, element_id)))
 
 
@@ -112,10 +113,7 @@ def login(company: str, user_id: str, password: str):
     logger.info("Login with " + company + " account.")
     access = False
     while not access:
-        #TODO: Spostare questa riga fuori dal loop?
         driver = webdriver.Chrome(options=get_driver_options())
-
-        wait = WebDriverWait(driver, 10)
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
         driver.find_element(by=By.CSS_SELECTOR,
@@ -123,13 +121,13 @@ def login(company: str, user_id: str, password: str):
         ).click()
         assert "MyTerna" in driver.title
 
-        wait_element(wait, By.NAME, "userid").send_keys(user_id)
+        wait_element(driver, By.NAME, "userid").send_keys(user_id)
         # wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
 
         driver.find_element(by=By.NAME, value="password").send_keys(password)
         driver.find_element(by=By.NAME, value="login").click()
         try:
-            wait_element(wait, By.ID, "nameSurnameCustomer")
+            wait_element(driver, By.ID, "nameSurnameCustomer")
             access = True
             logger.info(f"Logged in with {company} account.")
         except Exception as e:
@@ -165,19 +163,18 @@ def create_file_name(plant_type, date, rup, x, version, validation, company):
 
 
 def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0):
-    wait = WebDriverWait(driver, 30)
     if is_relevant:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
     else:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx")
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlAnno")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlAnno")
 
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
     ).select_by_value(year)
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlMese")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlMese")
 
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
@@ -185,19 +182,19 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
 
     if not HISTORY:
         if is_relevant:
-            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
+            wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
             ).send_keys(p)
         else:
-            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
+            wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
             Select(
                 driver.find_element(
                     by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
                 )
             ).select_by_value("UPNR_PUNTUALE")
 
-            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
+            wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
 
             driver.find_element(by=By.ID,
                 value="ctl00_cphMainPageMetering_txtCodiceUPDesc").send_keys(p)
@@ -205,7 +202,7 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_rbTutte").click()
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
 
     have_results = re.compile(".*[1-9]\d*.*")
     if have_results.match(
@@ -227,27 +224,26 @@ def search_meterings(driver, year, month, is_relevant, p=0, found=0, not_found=0
 
 
 def get_metering_data(driver):
-    wait = WebDriverWait(driver, 30)
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
 
     codice_up = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
     ).get_attribute("value")
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
 
     codice_psv = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
     ).get_attribute("value")
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
 
     versione = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxVersione"
     ).get_attribute("value")
 
-    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
+    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
 
     validazione = datetime.datetime.strptime(
         (
@@ -279,13 +275,12 @@ def download(
     validazione,
     company,
 ):
-    wait = WebDriverWait(driver, 30)
     if files != None and os.path.basename(filename) in files:
         driver.execute_script("window.history.go(-1)")
         return False
     else:
 
-        wait_element(wait, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
+        wait_element(driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport")
 
         logger.info("Downloading {} metering v.{}...".format(sapr, versione))
 
@@ -321,7 +316,6 @@ def download(
 
 def donwload_meterings(
     driver,
-    wait,
     company,
     year,
     month,
@@ -348,7 +342,7 @@ def donwload_meterings(
         res, _, _ = search_meterings(driver, year, month, is_relevant)
         if res > 0:
 
-            wait_element(wait, By.ID, "ctl00_cphMainPageMetering_GridView1")
+            wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
 
             table = driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
@@ -362,7 +356,7 @@ def donwload_meterings(
                 while new_metering:
                     while has_next_page:
 
-                        wait_element(wait, By.XPATH,
+                        wait_element(driver, By.XPATH,
                             '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]')
 
                         last_page = driver.find_element(
@@ -376,7 +370,7 @@ def donwload_meterings(
                             last_page.click()
                             has_next_page = False
 
-                    wait_element(wait, By.XPATH,
+                    wait_element(driver, By.XPATH,
                         '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[1]')
 
                     res = driver.find_elements(
@@ -395,7 +389,7 @@ def donwload_meterings(
                         i = 1
                         page.click()
 
-                    wait_element(wait, By.XPATH,
+                    wait_element(driver, By.XPATH,
                         '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr')
 
                     res = driver.find_elements(
@@ -465,7 +459,7 @@ def donwload_meterings(
                 v = 1
                 while v < res:
 
-                    wait_element(wait, By.ID, "ctl00_cphMainPageMetering_GridView1")
+                    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
 
                     table = driver.find_element(
                         by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
@@ -509,10 +503,8 @@ def get_metering(relevant: bool, company: str, year: int, month: int,userid: str
         not_found = 0
         while len(to_do_plants) > 0:
             driver = login(company, userid, password)
-            wait = WebDriverWait(driver, 30)
             to_do_plants, found, not_found = donwload_meterings(
                 driver,
-                wait,
                 company,
                 year,
                 month,
@@ -551,13 +543,12 @@ def run():
             logger.info(f"Downloading history metering for {company}")
             for year in range(int(year) - 5, int(year) + 1):
                 driver = login(company, userid, password)
-                wait = WebDriverWait(driver, 30)
 
                 for month in map(str, range(1, 13)):
                     month = month.zfill(2)
 
                     _, found, not_found = donwload_meterings(
-                        driver, wait, company, str(year), str(month), True
+                        driver, company, str(year), str(month), True
                     )
                     logger.info(f"Found {found} plants for {month}/{year}")
                     logger.info(f"Not found {not_found} plants for {month}/{year}")
