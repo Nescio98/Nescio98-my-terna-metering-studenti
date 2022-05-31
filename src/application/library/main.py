@@ -527,8 +527,8 @@ def run():
     start_watcher(DOWNLOAD_PATH)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
-    year = date.strftime("%Y")
-    month = date.strftime("%m")
+    c_year = date.strftime("%Y")
+    c_month = date.strftime("%m")
     # TO DO: Spostare in application config
     credentials = get_login_credentials(ENVIRONMENT)
 
@@ -541,23 +541,32 @@ def run():
         ]
         if HISTORY:
             logger.info(f"Downloading history metering for {company}")
-            for year in range(int(year) - 5, int(year) + 1):
+            for year in range(int(c_year) - 5, int(c_year) + 1):
                 driver = login(company, userid, password)
+                if year != c_year:
+                    for month in map(str, range(1, 13)):
+                        month = month.zfill(2)
 
-                for month in map(str, range(1, 13)):
-                    month = month.zfill(2)
+                        _, found, not_found = donwload_meterings(
+                            driver, company, str(year), str(month), True
+                        )
+                        logger.info(f"Found {found} plants for {month}/{year}")
+                        logger.info(f"Not found {not_found} plants for {month}/{year}")
+                else:
+                    for month in map(str, range(1, int(c_month)-1)):
+                        month = month.zfill(2)
 
-                    _, found, not_found = donwload_meterings(
-                        driver, company, str(year), str(month), True
-                    )
-                    logger.info(f"Found {found} plants for {month}/{year}")
-                    logger.info(f"Not found {not_found} plants for {month}/{year}")
+                        _, found, not_found = donwload_meterings(
+                            driver, company, str(year), str(month), True
+                        )
+                        logger.info(f"Found {found} plants for {month}/{year}")
+                        logger.info(f"Not found {not_found} plants for {month}/{year}")
         else:
             logger.info(f"Downloading metering for {company}")
             # Download EGO Energy metering relevant
-            get_metering(True, company, year, month, userid, password)
+            get_metering(True, company, c_year, c_month, userid, password)
             # Download EGO Energy metering not relevant
-            get_metering(False, company, year, month, userid, password)
+            get_metering(False, company, c_year, c_month, userid, password)
     # TODO; da vedere
     return True
 
