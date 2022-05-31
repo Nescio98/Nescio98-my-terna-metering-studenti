@@ -1,4 +1,5 @@
 import psycopg2
+from datetime import datetime
 
 from ..library.shared import get_parameters, logger
 
@@ -11,6 +12,7 @@ res = get_parameters(
     ]
 )
 
+
 def get_aws_param():
     for p in res["Parameters"]:
         if "host" in p.get("Name"):
@@ -22,8 +24,9 @@ def get_aws_param():
 
     return (host, username, password)
 
+
 # TODO: Da rivedere (mi riconnetto ogni volta o riutilizzo la stessa connessione?)
-def get_db_connection(host:str, username:str, password:str):
+def get_db_connection(host: str, username: str, password: str):
     return psycopg2.connect(
         database="datalake",
         user=username,
@@ -74,6 +77,8 @@ def write_measure(
     dispacciato_da: str,
 ):
     try:
+        dt = datetime.now()
+        ts = datetime.timestamp(dt)
         db = get_db_connection(*get_aws_param())
         cursor = db.cursor()
         query = f"""
@@ -87,7 +92,8 @@ def write_measure(
             '{codice_psv}',
              {vers},
              {validazione},
-            '{dispacciato_da}') """
+            '{dispacciato_da}',
+            '{ts}') """
 
         cursor.execute(query)
         db.commit()
