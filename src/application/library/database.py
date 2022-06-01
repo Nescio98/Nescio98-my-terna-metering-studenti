@@ -9,7 +9,7 @@ from ..library.shared import get_parameters, logger
 res = get_parameters(
     [
         "/prod/datalake/host",
-        "/prod/datalake/database"
+        "/prod/datalake/database",
         "/prod/datalake/lambda/username",
         "/prod/datalake/lambda/password",
     ]

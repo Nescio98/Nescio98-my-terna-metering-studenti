@@ -15,7 +15,7 @@ Parameters:
     Type: String
   ImageTag:
     Type: String
-  Bucket:
+  DestinationBucket:
     Type: String
   DownloadPath:
     Type: String
@@ -110,10 +110,10 @@ Resources:
               Value: !Sub ${EnvironmentName}
             - Name: SERVICE_NAME
               Value: !Sub ${ServiceName}
-            - Name: REGION
+            - Name: AWS_DEFAULT_REGION
               Value: !Sub ${DefaultRegion}
-            - Name: BUCKET
-              Value: !Sub ${Bucket}
+            - Name: DESTINATION_BUCKET
+              Value: !Sub ${DestinationBucket}
             - Name: DOWNLOAD_PATH
               Value: !Sub ${DownloadPath}
       Cpu: '2048'

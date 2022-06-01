@@ -10,9 +10,7 @@ class Application:
         self.parameters = parameters
 
     def run(self):
-        # TODO: Passare input richiesti
-        return run()
-        # return run(self.environment, self.parameters)
+        return run(self.environment, self.parameters)
 
 
 def factory(config: Config):

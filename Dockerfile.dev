@@ -36,12 +36,15 @@ COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 
-ENV ENVIRONMENT="staging"
-ENV SERVICE_NAME="my-terna-metering"
-ENV REGION="eu-west-1"
+ENV ENVIRONMENT=""
+ENV SERVICE_NAME=""
 
-ENV BUCKET=""
-ENV DOWNLOAD_PATH="measures"
+ENV DESTINATION_BUCKET=""
+ENV DOWNLOAD_PATH="metering"
+ENV QUEUE_NAME=""
+
+ENV HISTORICAL=""
+ENV COMPANIES=""
 
 ENV AWS_ACCESS_KEY_ID=""
 ENV AWS_SECRET_ACCESS_KEY=""
