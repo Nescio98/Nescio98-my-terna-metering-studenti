@@ -1,8 +1,9 @@
-from application.config.config import Config
-from application.config.environment import Environment
-from application.config.parameters import Parameters
+from ..application.config.config import Config
+from ..application.config.environment import Environment
+from ..application.config.parameters import Parameters
 
-from application.library.main import run
+from ..application.library.main import run
+
 
 class Application:
     def __init__(self, environment: Environment, parameters: Parameters):
