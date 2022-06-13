@@ -165,11 +165,11 @@ Resources:
           - Action: s3:GetObject
             Effect: Allow
             Resource:
-              - !Sub "arn:aws:s3:::${Bucket}/*"
+              - !Sub "arn:aws:s3:::${DestinationBucket}/*"
           - Action:
               - s3:GetBucketLocation
               - s3:ListBucket
             Effect: Allow
-            Resource: !Sub 'arn:aws:s3:::${Bucket}'
+            Resource: !Sub 'arn:aws:s3:::${DestinationBucket}'
       Roles:
         - Ref: TaskRole
