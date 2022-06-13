@@ -107,12 +107,7 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
-              AccessKey=${AWS_ACCESS_KEY_ID} 
-              SecretKey=${AWS_SECRET_ACCESS_KEY} 
-              EGOEnergyUserID=${EGOEnergy_UserID} 
-              EGOEnergyPassword=${EGOEnergy_Password} 
-              EGODataUserID=${EGOData_UserID} 
-              EGODataPassword=${EGOData_Password} 
+              DestinationBucket=ego-my-terna-metering
     - step: &task
         name: Deploy to Fargate
         image: amazon/aws-cli
@@ -142,12 +137,7 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
-              AccessKey=${AWS_ACCESS_KEY_ID} 
-              SecretKey=${AWS_SECRET_ACCESS_KEY} 
-              EGOEnergyUserID=${EGOEnergy_UserID} 
-              EGOEnergyPassword=${EGOEnergy_Password} 
-              EGODataUserID=${EGOData_UserID} 
-              EGODataPassword=${EGOData_Password} 
+              DestinationBucket=ego-my-terna-metering
 
 pipelines:
   custom:
