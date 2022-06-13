@@ -9,7 +9,15 @@ def _parse_companies(companies: str):
     if not companies:
         return []
     else:
-        return list(map(str.strip, companies.split(',')))
+        companies = list(map(str.strip, companies.split(",")))
+        for i in range(len(companies)):
+            companies[i] = (
+                companies[i].split()[0].upper()
+                + " "
+                + companies[i].split()[1][0].upper()
+                + companies[i].split()[1][1:].lower()
+            )
+        return companies
 
 
 @dataclass_json
@@ -21,6 +29,5 @@ class Parameters:
     historical: bool
 
     @staticmethod
-    def factory(companies:str, start_date:date, end_date:date, historical:bool):
+    def factory(companies: str, start_date: date, end_date: date, historical: bool):
         return Parameters(_parse_companies(companies), start_date, end_date, historical)
-    
