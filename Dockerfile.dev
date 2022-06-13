@@ -24,26 +24,40 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 # Set display port as an environment variable
 ENV DISPLAY=:99
 
+# Turns off buffering for easier container logging
+ENV PYTHONUNBUFFERED=1
+
+# Keeps Python from generating .pyc files in the container
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install pip requirements
+COPY requirements.txt .
+RUN python -m pip install -r requirements.txt
+
+
 ENV ENVIRONMENT=""
 ENV SERVICE_NAME=""
-ENV AWS_DEFAULT_REGION=""
 
 ENV DESTINATION_BUCKET=""
-ENV DOWNLOAD_PATH="/tmp/measures"
+ENV DOWNLOAD_PATH="metering"
 ENV QUEUE_NAME=""
 
-ENV HISTORICAL="False"
+ENV HISTORICAL=""
 ENV COMPANIES=""
 
-# File to copy inside the container
-# NB: You have to insert those also on bitbucket-pipelines condition in order to create the new image on file edit
-COPY requirements.txt  ./
-
-# Insert here app installation
-RUN pip install -r requirements.txt
+ENV AWS_ACCESS_KEY_ID=""
+ENV AWS_SECRET_ACCESS_KEY=""
+ENV AWS_SESSION_TOKEN=""
+ENV AWS_DEFAULT_REGION="eu-west-1"
 
 WORKDIR /app
-COPY src/* ./
+COPY . /app
 
-ENTRYPOINT [ "python" ]
-CMD ["handler.py"]
+# Creates a non-root user with an explicit UID and adds permission to access the /app folder
+# For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
+RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
+USER appuser
+
+# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
+CMD ["python", "src/handler.py"]

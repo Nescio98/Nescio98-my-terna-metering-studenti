@@ -48,5 +48,6 @@ Thumbs.db
 *.mov
 *.wmv
 
-.vscode/launch.json
+.vscode/
 .python_env/
+__pycache__/
