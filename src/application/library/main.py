@@ -6,6 +6,7 @@ from time import sleep
 from calendar import month
 from cmath import log
 from multiprocessing.connection import wait
+import multiprocessing
 from glob2 import glob
 
 import boto3
@@ -43,44 +44,73 @@ def get_login_credentials(environment):
         return {}
 
 
-class Handler(watchdog.events.PatternMatchingEventHandler):
-    def __init__(self, s3_client, destination_bucket_name: str, local_path: str):
-        # Set the patterns for PatternMatchingEventHandler
-        watchdog.events.PatternMatchingEventHandler.__init__(
-            self,
-            patterns=["UPR*.txt", "UPNR*.txt"],
-            ignore_directories=True,
-            case_sensitive=False,
-        )
-        # TODO: Fix this
-        # self._s3 = s3_client
-        self._s3 = boto3.client(
-            "s3",
-            # TODO: Credential must be removed. Access to S3 is granted with policy attached to the Task
-            # aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            # aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        )
-        self._destination_bucket = destination_bucket_name
-        self._local_path = local_path
-
-    def on_moved(self, event):
-        logger.info("Uploading file % s to S3." % event.dest_path)
-        # Event is modified, you can process it now
-        file = event.dest_path
-        upload_file(
-            file,
-            self._destination_bucket,
-            self._s3,
-            file.replace(self._local_path + "/", ""),
-        )
+# class Handler(watchdog.events.PatternMatchingEventHandler):
+#     def __init__(self, s3_client, destination_bucket_name: str, local_path: str):
+#         # Set the patterns for PatternMatchingEventHandler
+#         watchdog.events.PatternMatchingEventHandler.__init__(
+#             self,
+#             patterns=["UPR*.txt", "UPNR*.txt"],
+#             ignore_directories=True,
+#             case_sensitive=False,
+#         )
+#         # TODO: Fix this
+#         # self._s3 = s3_client
+#         self._s3 = boto3.client(
+#             "s3",
+#             # TODO: Credential must be removed. Access to S3 is granted with policy attached to the Task
+#             # aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+#             # aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+#         )
+#         self._destination_bucket = destination_bucket_name
+#         self._local_path = local_path
 
 
-def start_watcher(local_path: str, destination_bucket_name: str):
-    event_handler = Handler("mock s3 client", destination_bucket_name, local_path)
-    observer = watchdog.observers.Observer()
-    observer.schedule(event_handler, path=local_path, recursive=True)
-    observer.start()
-    # observer.join()
+def on_moved(
+    filename: str,
+    year,
+    month,
+    plant_type,
+    sapr,
+    codice_up,
+    codice_psv,
+    versione,
+    validazione,
+    company,
+    local_path,
+    destination_bucket,
+):
+    logger.info("Uploading file % s to S3." % os.path.basename(filename))
+    # Event is modified, you can process it now
+    res = upload_file(
+        filename,
+        destination_bucket,
+        local_path,
+        filename.replace(local_path + "/", ""),
+    )
+    if res:
+        logger.info("File %s uploaded to S3." % os.path.basename(filename))
+        write_measure(
+            os.path.basename(filename),
+            year,
+            month,
+            plant_type,
+            sapr,
+            codice_up,
+            codice_psv,
+            versione,
+            validazione,
+            company,
+        )
+    else:
+        logger.error("File %s not uploaded to S3." % os.path.basename(filename))
+
+
+# def start_watcher(local_path: str, destination_bucket_name: str):
+#     event_handler = Handler("mock s3 client", destination_bucket_name, local_path)
+#     observer = watchdog.observers.Observer()
+#     observer.schedule(event_handler, path=local_path, recursive=True)
+#     observer.start()
+#     # observer.join()
 
 
 def get_driver_options(local_path: str):
@@ -288,6 +318,7 @@ def download(
     codice_psv,
     validazione,
     company,
+    destination_bucket,
 ):
     if files != None and os.path.basename(filename) in files:
         driver.execute_script("window.history.go(-1)")
@@ -313,19 +344,23 @@ def download(
 
         if os.path.isfile(downloaded_file):
             os.rename(r"" + downloaded_file, filename)
-
-        write_measure(
-            os.path.basename(filename),
-            year,
-            month,
-            plant_type,
-            sapr,
-            codice_up,
-            codice_psv,
-            versione,
-            validazione,
-            company,
+        p = multiprocessing.Process(
+            target=on_moved,
+            args=(
+                filename,
+                year,
+                month,
+                plant_type,
+                sapr,
+                codice_up,
+                codice_psv,
+                validazione,
+                company,
+                local_path,
+                destination_bucket,
+            ),
         )
+        p.start()
     driver.execute_script("window.history.go(-1)")
     return True
 
@@ -342,6 +377,7 @@ def donwload_meterings(
     found: int = 0,
     not_found: int = 0,
     historical: bool = False,
+    destination_bucket: str = "",
 ):
     if not historical:
         month = (
@@ -468,6 +504,7 @@ def donwload_meterings(
                         codice_psv,
                         validazione,
                         company,
+                        destination_bucket,
                     ):
                         logger.info(
                             "Didn't found new {} metering for company {}, year {}, month {}".format(
@@ -549,6 +586,7 @@ def donwload_meterings(
                         codice_psv,
                         validazione,
                         company,
+                        destination_bucket,
                     ):
                         logger.info("Skipping {} ".format(filename))
                     v += 1
@@ -591,7 +629,7 @@ def get_metering(
 def run(environment: Environment, parameters: Parameters):
     os.makedirs(environment.local_path, exist_ok=True)
     companies = parameters.companies
-    start_watcher(environment.local_path, environment.destination_bucket)
+    # start_watcher(environment.local_path, environment.destination_bucket)
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
     c_year = date.strftime("%Y")
@@ -620,6 +658,7 @@ def run(environment: Environment, parameters: Parameters):
                             is_relevant=True,
                             local_path=environment.local_path,
                             historical=True,
+                            destination_bucket=environment.destination_bucket,
                         )
                         logger.info(f"Found {found} plants for {month}/{year}")
                         logger.info(f"Not found {not_found} plants for {month}/{year}")
@@ -635,6 +674,7 @@ def run(environment: Environment, parameters: Parameters):
                             is_relevant=True,
                             local_path=environment.local_path,
                             historical=True,
+                            destination_bucket=environment.destination_bucket,
                         )
                         logger.info(f"Found {found} plants for {month}/{year}")
                         logger.info(f"Not found {not_found} plants for {month}/{year}")
