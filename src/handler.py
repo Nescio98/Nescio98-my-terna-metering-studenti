@@ -5,7 +5,7 @@
 #     pass
 
 
-import application as app
+from application import application as app
 
 
 # AWS Lambda handler
@@ -17,6 +17,7 @@ import application as app
 
 # Docker entrypoint
 from application.builder import AppConfiguration as Config
+
 if __name__ == "__main__":
     configuration = Config().build()
     app.factory(configuration).run()
