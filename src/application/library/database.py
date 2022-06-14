@@ -2,7 +2,7 @@ from typing_extensions import final
 import psycopg2
 from datetime import datetime
 
-from ..library.shared import get_parameters, logger
+from shared import get_parameters, logger
 
 # TODO: Da muovere in un helper
 # TODO: gestire staging
@@ -39,7 +39,8 @@ def get_db_connection(host: str, database: str, username: str, password: str):
             password=password,
             host=host,
             port=5432,
-            connect_timeout=3)
+            connect_timeout=3,
+        )
         return connection
     except (Exception, psycopg2.Error) as e:
         logger.exception(f"Cannot connect to database {database}", e)
@@ -128,7 +129,9 @@ def write_measure(
         cursor.execute(query)
         connection.commit()
     except (Exception, psycopg2.Error) as e:
-        logger.exception(f"Error when trying to insert downloaded measure file for {nome_file}", e)
+        logger.exception(
+            f"Error when trying to insert downloaded measure file for {nome_file}", e
+        )
     finally:
         if connection:
             cursor.close()

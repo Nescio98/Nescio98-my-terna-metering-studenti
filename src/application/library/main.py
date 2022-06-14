@@ -20,11 +20,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 import selenium.common.exceptions as exceptions
 from selenium.webdriver.support import expected_conditions as EC
 
-from application.config.environment import Environment
-from application.config.parameters import Parameters
+from ..config.environment import Environment
+from ..config.parameters import Parameters
 
-from application.library.database import get_plants, get_downloaded_files, write_measure
-from application.library.shared import logger, upload_file, get_parameters
+from database import get_plants, get_downloaded_files, write_measure
+from shared import logger, upload_file, get_parameters
 
 
 # TODO: spostare in un helper
