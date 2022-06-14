@@ -681,7 +681,7 @@ def run(environment: Environment, parameters: Parameters):
                             company,
                             str(year),
                             str(month),
-                            s3_client
+                            s3_client,
                             is_relevant=True,
                             local_path=environment.local_path,
                             historical=True,
