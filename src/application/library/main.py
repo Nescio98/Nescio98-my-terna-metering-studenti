@@ -78,13 +78,14 @@ def on_moved(
     company,
     local_path,
     destination_bucket,
+    s3_client: boto3.client,
 ):
     logger.info("Uploading file % s to S3." % os.path.basename(filename))
     # Event is modified, you can process it now
     res = upload_file(
         filename,
         destination_bucket,
-        local_path,
+        s3_client,
         filename.replace(local_path + "/", ""),
     )
     if res:
@@ -320,6 +321,7 @@ def download(
     validazione,
     company,
     destination_bucket,
+    s3_client: boto3.client,
 ):
     if files != None and os.path.basename(filename) in files:
         driver.execute_script("window.history.go(-1)")
@@ -360,6 +362,7 @@ def download(
                 company,
                 local_path,
                 destination_bucket,
+                s3_client,
             ),
         )
         p.start()
@@ -372,6 +375,7 @@ def donwload_meterings(
     company: str,
     year: int,
     month: int,
+    s3_client: boto3.client,
     is_relevant: bool,
     local_path: str,
     plants: int = 0,
@@ -507,6 +511,7 @@ def donwload_meterings(
                         validazione,
                         company,
                         destination_bucket,
+                        s3_client,
                     ):
                         logger.info(
                             "Didn't found new {} metering for company {}, year {}, month {}".format(
@@ -589,6 +594,7 @@ def donwload_meterings(
                         validazione,
                         company,
                         destination_bucket,
+                        s3_client,
                     ):
                         logger.info("Skipping {} ".format(filename))
                     v += 1
@@ -632,6 +638,7 @@ def run(environment: Environment, parameters: Parameters):
     os.makedirs(environment.local_path, exist_ok=True)
     companies = parameters.companies
     # start_watcher(environment.local_path, environment.destination_bucket)
+    s3_client=boto3.client("s3")
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
     c_year = date.strftime("%Y")
@@ -657,6 +664,7 @@ def run(environment: Environment, parameters: Parameters):
                             company,
                             str(year),
                             str(month),
+                            s3_client,
                             is_relevant=True,
                             local_path=environment.local_path,
                             historical=True,
@@ -673,6 +681,7 @@ def run(environment: Environment, parameters: Parameters):
                             company,
                             str(year),
                             str(month),
+                            s3_client
                             is_relevant=True,
                             local_path=environment.local_path,
                             historical=True,
