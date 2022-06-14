@@ -2,9 +2,9 @@ from dataclasses import dataclass
 import os
 from distutils.util import strtobool
 
-from application.config.config import Config
-from application.config.environment import Environment
-from application.config.parameters import Parameters
+from config.config import Config
+from config.environment import Environment
+from config.parameters import Parameters
 
 # TODO: Analizzare inpuut richiesti e modalità di esecuzione
 
