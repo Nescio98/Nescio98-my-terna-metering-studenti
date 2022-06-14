@@ -23,8 +23,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from config.environment import Environment
 from config.parameters import Parameters
 
-from database import get_plants, get_downloaded_files, write_measure
-from shared import logger, upload_file, get_parameters
+from library.database import get_plants, get_downloaded_files, write_measure
+from library.shared import logger, upload_file, get_parameters
 
 
 # TODO: spostare in un helper
