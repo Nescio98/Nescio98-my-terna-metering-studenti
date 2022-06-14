@@ -5,7 +5,7 @@
 #     pass
 
 
-from application import application as app
+from .application import application as app
 
 
 # AWS Lambda handler
