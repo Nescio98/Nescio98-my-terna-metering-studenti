@@ -2,7 +2,7 @@ from typing_extensions import final
 import psycopg2
 from datetime import datetime
 
-from library.shared import get_parameters, logger
+from application.library.shared import get_parameters, logger
 
 # TODO: Da muovere in un helper
 # TODO: gestire staging

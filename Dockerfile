@@ -43,7 +43,9 @@ COPY requirements.txt  ./
 RUN pip install -r requirements.txt
 
 WORKDIR /app
-COPY src/* /app
+# COPY src/* /app
+COPY src/handler.py ./handler.py
+COPY src/application/ ./application/
 
 ENTRYPOINT [ "python" ]
 CMD ["handler.py"]

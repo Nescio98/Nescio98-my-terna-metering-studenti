@@ -2,7 +2,7 @@ from config.config import Config
 from config.environment import Environment
 from config.parameters import Parameters
 
-from library.main import run
+from application.library.main import run
 
 
 class Application:
