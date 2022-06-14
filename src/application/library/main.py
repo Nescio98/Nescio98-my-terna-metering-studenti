@@ -89,18 +89,19 @@ def on_moved(
     )
     if res:
         logger.info("File %s uploaded to S3." % os.path.basename(filename))
-        write_measure(
-            os.path.basename(filename),
-            year,
-            month,
-            plant_type,
-            sapr,
-            codice_up,
-            codice_psv,
-            versione,
-            validazione,
-            company,
-        )
+        if destination_bucket == "myterna-ego-data":
+            write_measure(
+                os.path.basename(filename),
+                year,
+                month,
+                plant_type,
+                sapr,
+                codice_up,
+                codice_psv,
+                versione,
+                validazione,
+                company,
+            )
     else:
         logger.error("File %s not uploaded to S3." % os.path.basename(filename))
 
@@ -354,6 +355,7 @@ def download(
                 sapr,
                 codice_up,
                 codice_psv,
+                versione,
                 validazione,
                 company,
                 local_path,
