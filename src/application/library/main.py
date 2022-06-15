@@ -610,6 +610,7 @@ def get_metering(
     password: str,
     local_path,
     s3_client,
+    destination_bucket,
 ):
     to_do_plants, p_number = get_plants(relevant, company)
     if p_number != 0:
@@ -629,7 +630,8 @@ def get_metering(
                 p_number,
                 found,
                 not_found,
-                historical=False,
+                False,
+                destination_bucket,
             )  # Download EGO Energy relevant metering
         logger.info(f"Downloaded data of {str(found)}/{str(p_number)} plants")
     else:
@@ -703,6 +705,7 @@ def run(environment: Environment, parameters: Parameters):
                 password,
                 environment.local_path,
                 s3_client,
+                destination_bucket=environment.destination_bucket,
             )
             # Download EGO Energy metering not relevant
             get_metering(
@@ -714,6 +717,7 @@ def run(environment: Environment, parameters: Parameters):
                 password,
                 environment.local_path,
                 s3_client,
+                destination_bucket=environment.destination_bucket,
             )
     # TODO; da vedere
     return True
