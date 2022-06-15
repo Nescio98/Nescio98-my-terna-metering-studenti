@@ -162,7 +162,9 @@ Resources:
           - Action: ssm:GetParameters
             Effect: Allow
             Resource: !Sub 'arn:aws:ssm:${DefaultRegion}:${AccountId}:parameter/*'
-          - Action: s3:GetObject
+          - Action: 
+              - s3:GetObject
+              - s3:PutObject
             Effect: Allow
             Resource:
               - !Sub "arn:aws:s3:::${DestinationBucket}/*"
