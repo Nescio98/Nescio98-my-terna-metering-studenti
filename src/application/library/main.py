@@ -609,6 +609,7 @@ def get_metering(
     userid: str,
     password: str,
     local_path,
+    s3_client,
 ):
     to_do_plants, p_number = get_plants(relevant, company)
     if p_number != 0:
@@ -621,6 +622,7 @@ def get_metering(
                 company,
                 year,
                 month,
+                s3_client,
                 relevant,
                 local_path,
                 to_do_plants,
@@ -638,7 +640,7 @@ def run(environment: Environment, parameters: Parameters):
     os.makedirs(environment.local_path, exist_ok=True)
     companies = parameters.companies
     # start_watcher(environment.local_path, environment.destination_bucket)
-    s3_client=boto3.client("s3")
+    s3_client = boto3.client("s3")
     current_date_time = datetime.datetime.now()
     date = current_date_time.date()
     c_year = date.strftime("%Y")
@@ -700,6 +702,7 @@ def run(environment: Environment, parameters: Parameters):
                 userid,
                 password,
                 environment.local_path,
+                s3_client,
             )
             # Download EGO Energy metering not relevant
             get_metering(
@@ -710,6 +713,7 @@ def run(environment: Environment, parameters: Parameters):
                 userid,
                 password,
                 environment.local_path,
+                s3_client,
             )
     # TODO; da vedere
     return True
