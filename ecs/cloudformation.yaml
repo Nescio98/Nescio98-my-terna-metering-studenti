@@ -167,7 +167,9 @@ Resources:
               - s3:PutObject
             Effect: Allow
             Resource:
-              - !Sub "arn:aws:s3:::${DestinationBucket}/*"
+              #- !Sub "arn:aws:s3:::${DestinationBucket}/*"
+              - !Sub "arn:aws:s3:::ego-fabio-123/*"
+              - !Sub "arn:aws:s3:::ego-my-terna-metering/*"
           - Action:
               - s3:GetBucketLocation
               - s3:ListBucket
