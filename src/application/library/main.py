@@ -90,7 +90,7 @@ def on_moved(
     )
     if res:
         logger.info("File %s uploaded to S3." % os.path.basename(filename))
-        if destination_bucket == "myterna-ego-data":
+        if destination_bucket == "ego-my-terna-metering":
             write_measure(
                 os.path.basename(filename),
                 year,
