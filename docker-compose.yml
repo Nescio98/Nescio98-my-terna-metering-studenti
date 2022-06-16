@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  myternametering:
+    image: myternametering
+    build:
+      context: .
+      dockerfile: ./Dockerfile

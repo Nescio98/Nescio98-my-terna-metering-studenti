@@ -10,9 +10,9 @@ from botocore.exceptions import ClientError
 # This variables are defined in serverless:
 # ENVIRONMENT
 # SERVICE_NAME
-ENVIRONMENT = os.environ["ENVIRONMENT"]
-SERVICE_NAME = os.environ["SERVICE_NAME"]
-REGION = os.environ["REGION"]
+# TODO: da mettere a posto (non ci dovrebbero essee riferimeti espliciti al env)
+REGION = os.environ["AWS_DEFAULT_REGION"]
+
 CONSOLE_LOGGER_LEVEL = logging.DEBUG
 LOGGER_LEVEL = logging.DEBUG
 EGO_LOGGER_LEVEL = 100  # logging.ERROR
@@ -27,32 +27,6 @@ class EGOHandler(StreamHandler):
     #     msg=msg.replace("'","\"")
     #     subj="Job " + SERVICE_NAME + ":{0} returned ERROR.".format(ENVIRONMENT)
     #     transmitAlert(msg, "email", EMAIL_RECIPIENTS, SERVICE_NAME, subj)
-
-
-def deployToFargate():
-    client = boto3.client("ecs")
-    response = client.run_task(
-        cluster=f"default",
-        count=1,
-        enableECSManagedTags=False,
-        launchType="FARGATE",
-        networkConfiguration={
-            "awsvpcConfiguration": {
-                "subnets": [
-                    "subnet-060126506e400d7cb",
-                    "subnet-06144cb1fe1dbd38b",
-                    "subnet-0a302591beab0099d",
-                ],
-                "securityGroups": [
-                    "sg-013ba8c102109773e",
-                ],
-                "assignPublicIp": "DISABLED",
-            }
-        },
-        propagateTags="TASK_DEFINITION",
-        taskDefinition=f"prod-fargate-RunFromLambdaTest",
-    )
-    print(response)
 
 
 def initializeLogs(
@@ -86,23 +60,7 @@ def initializeLogs(
     )
 
 
-def publish_event(message, logger):
-    payload = dict(status=message, foo_num=100)
-    Entries = [
-        {
-            "Source": "{}.{}.{}".format(ENVIRONMENT, SERVICE_NAME, message),
-            "Detail": json.dumps(payload),
-            "EventBusName": "default",
-            "DetailType": "topic",
-        },
-    ]
-    client = boto3.client("events", region_name=REGION)
-    logger.debug("Published event: {0}".format(Entries))
-    response = client.put_events(Entries=Entries)
-    logger.debug("Response from AWS: {0}".format(response))
-    if response["FailedEntryCount"] == 0:
-        return True
-    return False
+_, logger, _  = initializeLogs(LOGGER_LEVEL, CONSOLE_LOGGER_LEVEL, EGO_LOGGER_LEVEL)
 
 
 def upload_file(file_name, bucket, s3client, object_name=None):
@@ -126,25 +84,6 @@ def upload_file(file_name, bucket, s3client, object_name=None):
         logging.error(e)
         return False
     return True
-
-
-def run(command, logger, log_stdout=True):
-    """Execute a command inside python
-
-    :param command: The command to execute
-    :param logger: The logger object
-    :param log_stdout: Optional, default value True, if True log output
-    """
-    result = subprocess.run(command, shell=True, text=True, capture_output=True)
-    logger.info(command)
-    if result.returncode == 0:
-        if log_stdout and result.stdout:
-            logger.debug(result.stdout)
-        logger.info("Done")
-    else:
-        if result.stderr:
-            logger.error(result.stderr)
-        exit(1)
 
 
 def get_parameters(parameters):
