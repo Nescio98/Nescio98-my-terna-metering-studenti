@@ -118,7 +118,6 @@ def on_moved(
 def get_driver_options(local_path: str):
     options = Options()
     options.binary_location = "/usr/bin/google-chrome-stable"
-    # options.binary_location = "/usr/bin/chromium"
 
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")

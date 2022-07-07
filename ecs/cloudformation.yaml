@@ -116,6 +116,46 @@ Resources:
               Value: !Sub ${DestinationBucket}
             - Name: DOWNLOAD_PATH
               Value: !Sub ${DownloadPath}
+            - Name: HISTORICAL
+              Value: False
+      Cpu: '2048'
+      Memory: '4096'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Family: !Sub ${EnvironmentName}-fargate-my-terna-metering
+      TaskRoleArn: !GetAtt 'TaskRole.Arn'
+      ExecutionRoleArn: !Sub arn:aws:iam::${AccountId}:role/ecsTaskExecutionRole
+    Type: AWS::ECS::TaskDefinition
+
+  TaskDefinition:
+    DependsOn:
+      - TaskRole
+      - CloudWatchLogsGroup
+    Properties:
+      ContainerDefinitions:
+        - Essential: true
+          Image: !Sub ${AccountId}.dkr.ecr.${DefaultRegion}.amazonaws.com/${ImageName}:${ImageTag}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudWatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: Fargate
+          Name: !Sub ${EnvironmentName}-my-terna-metering-historical
+          Environment:
+            - Name: ENVIRONMENT
+              Value: !Sub ${EnvironmentName}
+            - Name: SERVICE_NAME
+              Value: !Sub ${ServiceName}
+            - Name: AWS_DEFAULT_REGION
+              Value: !Sub ${DefaultRegion}
+            - Name: DESTINATION_BUCKET
+              Value: !Sub ${DestinationBucket}
+            - Name: DOWNLOAD_PATH
+              Value: !Sub ${DownloadPath}
+            - Name: HISTORICAL
+              Value: True
       Cpu: '2048'
       Memory: '4096'
       NetworkMode: awsvpc
