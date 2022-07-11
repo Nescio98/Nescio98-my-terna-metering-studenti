@@ -55,7 +55,7 @@ Resources:
       Threshold: 0
     Type: AWS::CloudWatch::Alarm
 
-ScheduledRuleMonthRun:
+ScheduledRule:
   DependsOn:
     - TaskRole
     - TaskDefinition
