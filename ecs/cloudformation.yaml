@@ -54,7 +54,6 @@ Resources:
       Statistic: Average
       Threshold: 0
     Type: AWS::CloudWatch::Alarm
-
   ScheduledRuleMonthRun:
     DependsOn:
       - TaskRole
@@ -83,13 +82,6 @@ Resources:
           RoleArn: !GetAtt 'TaskRole.Arn'
           Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-${ServiceName}, "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "False"}, {"name":"COMPANIES",   "value": "EGO DATA"}       ]     }   ] }'
     Type: AWS::Events::Rule
-
-Resources:
-  CloudWatchLogsGroup:
-    Properties:
-      LogGroupName: !Sub /fargate/${EnvironmentName}/my-terna-metering
-      RetentionInDays: 7
-    Type: AWS::Logs::LogGroup
 
   TaskDefinition:
     DependsOn:
