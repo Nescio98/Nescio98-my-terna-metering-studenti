@@ -143,7 +143,6 @@ def login(company: str, user_id: str, password: str, local_path: str):
     access = False
     tries = 0
     while not access and tries <= 15:
-        tries+=1
         driver = webdriver.Chrome(options=get_driver_options(local_path))
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
@@ -163,8 +162,10 @@ def login(company: str, user_id: str, password: str, local_path: str):
             logger.info(f"Logged in with {company} account.")
         except Exception as e:
             access = False
+            tries += 1
             driver.close()
-            # TODO: Log exception?
+            logger.info("Login Failed")
+            sleep(10)
     return driver
 
 
