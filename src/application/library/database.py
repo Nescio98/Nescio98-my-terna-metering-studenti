@@ -68,8 +68,10 @@ def get_plants(is_relevant: bool, company: str):
             zoho_crm."Impianti"
         WHERE
             "UnitàDisp.Come" = '{company}' AND
-            "Rilevante" = {str(is_relevant).upper()} AND
-            "AttualmenteDisp.Terna?" = TRUE; """
+            "Rilevante" = {str(is_relevant).upper()}"""
+
+    # AND
+    # "AttualmenteDisp.Terna?" = TRUE; """
 
     conn = get_db_connection(*get_aws_param())
     plants = execute_query(conn, query)
