@@ -204,7 +204,7 @@ def search_meterings(
     p: int = 0,
     found: int = 0,
     not_found: int = 0,
-    historical=True,
+    historical: bool = False,
 ):
     if is_relevant:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
