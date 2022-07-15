@@ -141,7 +141,9 @@ def wait_element(driver: webdriver, by: By, element_id: str):
 def login(company: str, user_id: str, password: str, local_path: str):
     logger.info("Login with " + company + " account.")
     access = False
-    while not access:
+    tries = 0
+    while not access and tries <= 15:
+        tries+=1
         driver = webdriver.Chrome(options=get_driver_options(local_path))
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
