@@ -165,7 +165,7 @@ def login(company: str, user_id: str, password: str, local_path: str):
             tries += 1
             driver.close()
             logger.info("Login Failed")
-            sleep(10)
+            logger.info("Retrying login...")
     return driver
 
 
@@ -529,6 +529,7 @@ def donwload_meterings(
                     company, plant_type, year, month
                 )
             )
+            return 0, 0, 0
     else:
         if len(plants) / 100 >= 1:
             n = 100
@@ -676,8 +677,27 @@ def run(environment: Environment, parameters: Parameters):
                             historical=True,
                             destination_bucket=environment.destination_bucket,
                         )
-                        logger.info(f"Found {found} plants for {month}/{year}")
-                        logger.info(f"Not found {not_found} plants for {month}/{year}")
+                        logger.info(f"Found {found} relevant plants for {month}/{year}")
+                        logger.info(
+                            f"Not found {not_found} relevant plants for {month}/{year}"
+                        )
+                        _, found, not_found = donwload_meterings(
+                            driver,
+                            company,
+                            str(year),
+                            str(month),
+                            s3_client,
+                            is_relevant=False,
+                            local_path=environment.local_path,
+                            historical=True,
+                            destination_bucket=environment.destination_bucket,
+                        )
+                        logger.info(
+                            f"Found {found} unrelevant plants for {month}/{year}"
+                        )
+                        logger.info(
+                            f"Not found {not_found} unrelevant plants for {month}/{year}"
+                        )
                 else:
                     for month in map(str, range(1, int(c_month) - 1)):
                         month = month.zfill(2)
@@ -693,8 +713,27 @@ def run(environment: Environment, parameters: Parameters):
                             historical=True,
                             destination_bucket=environment.destination_bucket,
                         )
-                        logger.info(f"Found {found} plants for {month}/{year}")
-                        logger.info(f"Not found {not_found} plants for {month}/{year}")
+                        logger.info(f"Found {found} relevant plants for {month}/{year}")
+                        logger.info(
+                            f"Not found {not_found} relevant plants for {month}/{year}"
+                        )
+                        _, found, not_found = donwload_meterings(
+                            driver,
+                            company,
+                            str(year),
+                            str(month),
+                            s3_client,
+                            is_relevant=False,
+                            local_path=environment.local_path,
+                            historical=True,
+                            destination_bucket=environment.destination_bucket,
+                        )
+                        logger.info(
+                            f"Found {found} unrelevant plants for {month}/{year}"
+                        )
+                        logger.info(
+                            f"Not found {not_found} unrelevant plants for {month}/{year}"
+                        )
         else:
             logger.info(f"Downloading metering for {company}")
             # Download EGO Energy metering relevant
