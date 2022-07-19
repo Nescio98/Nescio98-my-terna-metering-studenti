@@ -85,7 +85,7 @@ Resources:
   ScheduledRuleHistoric:
     DependsOn:
       - TaskRole
-      - TaskDefinitionHistory
+      - TaskDefinition
     Properties:
       Description: !Sub 'ScheduledRule for task my-terna-metering in Fargate ${EnvironmentName}
         environment'
