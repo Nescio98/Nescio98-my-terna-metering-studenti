@@ -80,7 +80,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "False"}, {"name":"COMPANIES",   "value": "EGO DATA"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "False"}, {"name":"COMPANIES",   "value": "EGO DATA, EGO Energy"}       ]     }   ] }'
     Type: AWS::Events::Rule
   ScheduledRuleHistoric:
     DependsOn:
@@ -105,10 +105,10 @@ Resources:
                   - subnet-06144cb1fe1dbd38b
                   - subnet-0a302591beab0099d
             TaskCount: 1
-            TaskDefinitionArn: !Ref 'TaskDefinitionHistory'
+            TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA, EGO Energy"}       ]     }   ] }'
     Type: AWS::Events::Rule
 
   TaskDefinition:
@@ -139,44 +139,6 @@ Resources:
               Value: !Sub ${DownloadPath}
             - Name: HISTORICAL
               Value: False
-      Cpu: '2048'
-      Memory: '4096'
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      Family: !Sub ${EnvironmentName}-fargate-my-terna-metering
-      TaskRoleArn: !GetAtt 'TaskRole.Arn'
-      ExecutionRoleArn: !Sub arn:aws:iam::${AccountId}:role/ecsTaskExecutionRole
-    Type: AWS::ECS::TaskDefinition
-
-  TaskDefinitionHistory:
-    DependsOn:
-      - TaskRole
-      - CloudWatchLogsGroup
-    Properties:
-      ContainerDefinitions:
-        - Essential: true
-          Image: !Sub ${AccountId}.dkr.ecr.${DefaultRegion}.amazonaws.com/${ImageName}:${ImageTag}
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref 'CloudWatchLogsGroup'
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: Fargate
-          Name: !Sub ${EnvironmentName}-my-terna-metering-historical
-          Environment:
-            - Name: ENVIRONMENT
-              Value: !Sub ${EnvironmentName}
-            - Name: SERVICE_NAME
-              Value: !Sub ${ServiceName}
-            - Name: AWS_DEFAULT_REGION
-              Value: !Sub ${DefaultRegion}
-            - Name: DESTINATION_BUCKET
-              Value: !Sub ${DestinationBucket}
-            - Name: DOWNLOAD_PATH
-              Value: !Sub ${DownloadPath}
-            - Name: HISTORICAL
-              Value: True
       Cpu: '2048'
       Memory: '4096'
       NetworkMode: awsvpc
