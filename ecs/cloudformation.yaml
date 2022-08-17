@@ -80,7 +80,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "False"}, {"name":"COMPANIES",   "value": "EGO DATA, EGO Energy"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-metering-tso-863181445948-eu-west-1"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "False"}, {"name":"COMPANIES",   "value": "EGO DATA, EGO Energy"}       ]     }   ] }'
     Type: AWS::Events::Rule
   ScheduledRuleHistoricEgoDataRelevant:
     DependsOn:
@@ -108,7 +108,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA"}, {"name":"RELEVANT",   "value": "True"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-metering-tso-863181445948-eu-west-1"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA"}, {"name":"RELEVANT",   "value": "True"}       ]     }   ] }'
     Type: AWS::Events::Rule
   ScheduledRuleHistoricEgoDataUnrelevant:
     DependsOn:
@@ -136,7 +136,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA"}, {"name":"RELEVANT",   "value": "False"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-metering-tso-863181445948-eu-west-1"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO DATA"}, {"name":"RELEVANT",   "value": "False"}       ]     }   ] }'
     Type: AWS::Events::Rule
   ScheduledRuleHistoricEgoEnergyRelevant:
     DependsOn:
@@ -164,7 +164,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO Energy"}, {"name":"RELEVANT",   "value": "True"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-metering-tso-863181445948-eu-west-1"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO Energy"}, {"name":"RELEVANT",   "value": "True"}       ]     }   ] }'
     Type: AWS::Events::Rule
   ScheduledRuleHistoricEgoEnergyUnrelevant:
     DependsOn:
@@ -192,7 +192,7 @@ Resources:
             TaskDefinitionArn: !Ref 'TaskDefinition'
           Id: !Sub '${EnvironmentName}-fargate-my-terna-metering-ScheduledRule'
           RoleArn: !GetAtt 'TaskRole.Arn'
-          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-my-terna-metering"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO Energy"}, {"name":"RELEVANT",   "value": "False"}       ]     }   ] }'
+          Input: !Sub '{"containerOverrides": [{"name": "${EnvironmentName}-my-terna-metering", "environment": [{"name":"ENVIRONMENT", "value": "${EnvironmentName}"}, {"name":"SERVICE_NAME", "value": "${ServiceName}"}, {"name":"AWS_DEFAULT_REGION", "value": "eu-west-1"}, {"name":"DESTINATION_BUCKET",  "value": "ego-metering-tso-863181445948-eu-west-1"}, {"name":"DOWNLOAD_PATH",   "value": "/tmp/measures"}, {"name":"QUEUE_NAME",   "value": ""}, {"name":"HISTORICAL",   "value": "True"}, {"name":"COMPANIES",   "value": "EGO Energy"}, {"name":"RELEVANT",   "value": "False"}       ]     }   ] }'
     Type: AWS::Events::Rule
 
   TaskDefinition:
@@ -277,6 +277,7 @@ Resources:
             Effect: Allow
             Resource:
               #- !Sub "arn:aws:s3:::${DestinationBucket}/*"
+              - !Sub "arn:aws:s3:::ego-metering-tso-863181445948-eu-west-1/*"
               - !Sub "arn:aws:s3:::ego-fabio-123/*"
               - !Sub "arn:aws:s3:::ego-my-terna-metering/*"
           - Action:

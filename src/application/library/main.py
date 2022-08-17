@@ -174,7 +174,7 @@ def create_file_name(
 ):
     return (
         local_path
-        + "/csv/"
+        + "/terna/csv/"
         + company.lower().replace(" ", "-")
         + "/"
         + date[:4]
