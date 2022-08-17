@@ -27,7 +27,16 @@ class Parameters:
     start_date: date
     end_date: date
     historical: bool
+    relevant: bool
 
     @staticmethod
-    def factory(companies: str, start_date: date, end_date: date, historical: bool):
-        return Parameters(_parse_companies(companies), start_date, end_date, historical)
+    def factory(
+        companies: str,
+        start_date: date,
+        end_date: date,
+        historical: bool,
+        relevant: bool,
+    ):
+        return Parameters(
+            _parse_companies(companies), start_date, end_date, historical, relevant
+        )

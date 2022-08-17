@@ -28,9 +28,14 @@ class AppConfiguration:
     def get_parameters(self) -> Parameters:
         companies = os.environ.get("COMPANIES", "")
         historical = bool(strtobool(os.environ.get("HISTORICAL", "False")))
+        relevant = bool(strtobool(os.environ.get("RELEVANT", "False")))
 
         return Parameters.factory(
-            companies=companies, start_date=None, end_date=None, historical=historical
+            companies=companies,
+            start_date=None,
+            end_date=None,
+            historical=historical,
+            relevant=relevant,
         )
 
     def build(self) -> Config:

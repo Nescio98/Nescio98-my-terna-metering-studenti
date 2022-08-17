@@ -223,6 +223,12 @@ def search_meterings(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlMese")
     ).select_by_value(str(int(month)))
 
+    if not is_relevant:
+        wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
+        Select(
+            driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP")
+        ).select_by_value("UPNR_PUNTUALE")
+
     if not historical:
         if is_relevant:
             wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
@@ -230,13 +236,6 @@ def search_meterings(
                 by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
             ).send_keys(p)
         else:
-            wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
-            Select(
-                driver.find_element(
-                    by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP"
-                )
-            ).select_by_value("UPNR_PUNTUALE")
-
             wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
 
             driver.find_element(
@@ -246,7 +245,7 @@ def search_meterings(
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_rbTutte").click()
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
 
-    wait_element(driver, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
+    # wait_element(driver, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
 
     have_results = re.compile(".*[1-9]\d*.*")
     if (
@@ -659,28 +658,63 @@ def run(environment: Environment, parameters: Parameters):
             f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
         ]
         if parameters.historical:
-            logger.info(f"Downloading history metering for {company}")
-            for year in range(int(c_year) - 5, int(c_year) + 1):
-                driver = login(company, userid, password, environment.local_path)
-                if year != c_year:
-                    for month in map(str, range(1, 13)):
-                        month = month.zfill(2)
+            if parameters.relevant:
+                logger.info(f"Downloading history relevant metering for {company}")
+                for year in range(int(c_year) - 5, int(c_year) + 1):
+                    driver = login(company, userid, password, environment.local_path)
+                    if year != c_year:
+                        for month in map(str, range(1, 13)):
+                            month = month.zfill(2)
 
-                        _, found, not_found = donwload_meterings(
-                            driver,
-                            company,
-                            str(year),
-                            str(month),
-                            s3_client,
-                            is_relevant=True,
-                            local_path=environment.local_path,
-                            historical=True,
-                            destination_bucket=environment.destination_bucket,
-                        )
-                        logger.info(f"Found {found} relevant plants for {month}/{year}")
-                        logger.info(
-                            f"Not found {not_found} relevant plants for {month}/{year}"
-                        )
+                            _, found, not_found = donwload_meterings(
+                                driver,
+                                company,
+                                str(year),
+                                str(month),
+                                s3_client,
+                                is_relevant=True,
+                                local_path=environment.local_path,
+                                historical=True,
+                                destination_bucket=environment.destination_bucket,
+                            )
+                    else:
+                        for month in map(str, range(1, int(c_month) - 1)):
+                            month = month.zfill(2)
+
+                            _, found, not_found = donwload_meterings(
+                                driver,
+                                company,
+                                str(year),
+                                str(month),
+                                s3_client,
+                                is_relevant=True,
+                                local_path=environment.local_path,
+                                historical=True,
+                                destination_bucket=environment.destination_bucket,
+                            )
+            else:
+                logger.info(f"Downloading history unrelevant metering for {company}")
+                for year in range(int(c_year) - 5, int(c_year) + 1):
+                    driver = login(company, userid, password, environment.local_path)
+                    if year != c_year:
+                        for month in map(str, range(1, 13)):
+                            month = month.zfill(2)
+
+                            _, found, not_found = donwload_meterings(
+                                driver,
+                                company,
+                                str(year),
+                                str(month),
+                                s3_client,
+                                is_relevant=False,
+                                local_path=environment.local_path,
+                                historical=True,
+                                destination_bucket=environment.destination_bucket,
+                            )
+                    else:
+                        for month in map(str, range(1, int(c_month) - 1)):
+                            month = month.zfill(2)
+
                         _, found, not_found = donwload_meterings(
                             driver,
                             company,
@@ -691,48 +725,6 @@ def run(environment: Environment, parameters: Parameters):
                             local_path=environment.local_path,
                             historical=True,
                             destination_bucket=environment.destination_bucket,
-                        )
-                        logger.info(
-                            f"Found {found} unrelevant plants for {month}/{year}"
-                        )
-                        logger.info(
-                            f"Not found {not_found} unrelevant plants for {month}/{year}"
-                        )
-                else:
-                    for month in map(str, range(1, int(c_month) - 1)):
-                        month = month.zfill(2)
-
-                        _, found, not_found = donwload_meterings(
-                            driver,
-                            company,
-                            str(year),
-                            str(month),
-                            s3_client,
-                            is_relevant=True,
-                            local_path=environment.local_path,
-                            historical=True,
-                            destination_bucket=environment.destination_bucket,
-                        )
-                        logger.info(f"Found {found} relevant plants for {month}/{year}")
-                        logger.info(
-                            f"Not found {not_found} relevant plants for {month}/{year}"
-                        )
-                        _, found, not_found = donwload_meterings(
-                            driver,
-                            company,
-                            str(year),
-                            str(month),
-                            s3_client,
-                            is_relevant=False,
-                            local_path=environment.local_path,
-                            historical=True,
-                            destination_bucket=environment.destination_bucket,
-                        )
-                        logger.info(
-                            f"Found {found} unrelevant plants for {month}/{year}"
-                        )
-                        logger.info(
-                            f"Not found {not_found} unrelevant plants for {month}/{year}"
                         )
         else:
             logger.info(f"Downloading metering for {company}")
