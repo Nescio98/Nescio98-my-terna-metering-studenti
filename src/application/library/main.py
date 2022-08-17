@@ -192,7 +192,7 @@ def create_file_name(
         + str(version)
         + "."
         + str(validation)
-        + ".txt"
+        + ".csv"
     )
 
 
