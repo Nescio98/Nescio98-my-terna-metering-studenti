@@ -397,7 +397,7 @@ def donwload_meterings(
     files = get_downloaded_files(year, month, plant_type, company)
 
     os.makedirs(
-        f"{local_path}/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
+        f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
         exist_ok=True,
     )
 
