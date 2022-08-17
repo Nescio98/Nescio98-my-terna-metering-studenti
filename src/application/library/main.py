@@ -90,19 +90,18 @@ def on_moved(
     )
     if res:
         logger.info("File %s uploaded to S3." % os.path.basename(filename))
-        if destination_bucket == "ego-my-terna-metering":
-            write_measure(
-                os.path.basename(filename),
-                year,
-                month,
-                plant_type,
-                sapr,
-                codice_up,
-                codice_psv,
-                versione,
-                validazione,
-                company,
-            )
+        write_measure(
+            os.path.basename(filename),
+            year,
+            month,
+            plant_type,
+            sapr,
+            codice_up,
+            codice_psv,
+            versione,
+            validazione,
+            company,
+        )
     else:
         logger.error("File %s not uploaded to S3." % os.path.basename(filename))
 
@@ -394,6 +393,7 @@ def donwload_meterings(
         plant_type = "UPR"
     else:
         plant_type = "UPNR"
+
     files = get_downloaded_files(year, month, plant_type, company)
 
     os.makedirs(
@@ -459,7 +459,10 @@ def donwload_meterings(
                             + str(x)
                             + "]",
                         )
-                        x += 1
+                        if page.text != "...":
+                            x += 1
+                        else:
+                            x = 1
                         i = 1
                         page.click()
 
