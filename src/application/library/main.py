@@ -165,9 +165,11 @@ def login(company: str, user_id: str, password: str, local_path: str):
         ).click()
         assert "MyTerna" in driver.title
 
-        _,b = wait_element(driver, By.NAME, "userid").send_keys(user_id)
+        _,b = wait_element(driver, By.NAME, "userid")
         if b != None:
             driver = b
+        driver.find_element(by=By.NAME, value="userid").send_keys(user_id)
+        
         # wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
 
         driver.find_element(by=By.NAME, value="password").send_keys(password)
