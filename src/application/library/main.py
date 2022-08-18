@@ -494,18 +494,19 @@ def donwload_meterings(
                     if (
                         len(res) - i < 0
                     ):  # if there are no more results on the page then go previous page
-                        page = driver.find_element(
-                            By.XPATH,
-                            value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()-'
-                            + str(x)
-                            + "]",
-                        )
-                        if page.text != "...":
-                            x += 1
-                        elif page.text=="1":
-                            new_metering = False
-                        else:
+                        try:
+                            page = driver.find_element(
+                                By.XPATH,
+                                value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()-'
+                                + str(x)
+                                + "]",
+                            )
+                        except exceptions.NoSuchElementException:
+                            new_metering=False
+                        if page.text == "...":
                             x = 1
+                        else:
+                            x += 1
                         i = 1
                         page.click()
 
