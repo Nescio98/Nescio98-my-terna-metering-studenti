@@ -502,6 +502,8 @@ def donwload_meterings(
                         )
                         if page.text != "...":
                             x += 1
+                        elif page.text=="1":
+                            new_metering = False
                         else:
                             x = 1
                         i = 1
