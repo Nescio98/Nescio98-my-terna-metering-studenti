@@ -136,13 +136,12 @@ def wait_element(driver: webdriver, by: By, element_id: str):
     wait = WebDriverWait(driver, 30)
     current_url=driver.current_url
     try:
-        wait.until(EC.presence_of_element_located((by, element_id)))
-        return True
+        return wait.until(EC.presence_of_element_located((by, element_id)))
     except exceptions.TimeoutException:
         logger.info("TimeoutException, reloading page...")
         driver.get(current_url)
         try:
-            wait.until(EC.presence_of_element_located((by, element_id)))
+            return wait.until(EC.presence_of_element_located((by, element_id)))
         except exceptions.TimeoutException:
             logger.info("TimeoutException, trying to login...")
             driver=login(company, userid, password, local_path)
