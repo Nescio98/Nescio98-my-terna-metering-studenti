@@ -495,6 +495,8 @@ def donwload_meterings(
                     if (
                         len(res) - i < 0
                     ):  # if there are no more results on the page then go previous page
+                        if page.text == "1":
+                            new_metering = False
                         try:
                             page = driver.find_element(
                                 By.XPATH,
@@ -502,7 +504,7 @@ def donwload_meterings(
                                 + str(x)
                                 + "]",
                             )
-                        except exceptions.NoSuchElementException:
+                        except:
                             new_metering=False
                         if page.text == "...":
                             x = 1
@@ -571,8 +573,6 @@ def donwload_meterings(
                         )
                         new_metering = False
                     i += 1
-                    if page.text=="1":
-                            new_metering=False
                 return plants, found, not_found
         else:
             logger.info(
