@@ -456,6 +456,7 @@ def donwload_meterings(
                 i = 1  # cycle throught page results
                 has_next_page = True
                 new_metering = True
+                last=False
                 while new_metering:
                     while has_next_page:
 
@@ -494,8 +495,6 @@ def donwload_meterings(
                     if (
                         len(res) - i < 0
                     ):  # if there are no more results on the page then go previous page
-                        if page.text == "1":
-                            new_metering = False
                         try:
                             page = driver.find_element(
                                 By.XPATH,
@@ -505,7 +504,9 @@ def donwload_meterings(
                             )
                         except:
                             new_metering=False
-                        if page.text == "...":
+                        if page.text == "1":
+                            last=True
+                        elif page.text == "...":
                             x = 1
                         else:
                             x += 1
@@ -570,6 +571,8 @@ def donwload_meterings(
                                 plant_type, company, year, month
                             )
                         )
+                        new_metering = False
+                    if last==True:
                         new_metering = False
                     i += 1
                 return plants, found, not_found
