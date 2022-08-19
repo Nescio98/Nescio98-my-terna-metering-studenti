@@ -157,7 +157,8 @@ def login(company: str, user_id: str, password: str, local_path: str):
     logger.info("Login with " + company + " account.")
     access = False
     tries = 0
-    while not access and tries <= 15:
+    wait = WebDriverWait(driver, 30)
+    while not access and tries <= 10:
         driver = webdriver.Chrome(options=get_driver_options(local_path))
         driver.get("https://myterna.terna.it/portal/portal/myterna")
         assert "MyTerna" in driver.title
@@ -165,20 +166,18 @@ def login(company: str, user_id: str, password: str, local_path: str):
             by=By.CSS_SELECTOR, value="div.col-m-6:nth-child(1) > a:nth-child(1)"
         ).click()
         assert "MyTerna" in driver.title
-
-        # b = wait_element(driver, By.NAME, "userid")
-        # if b != None:
-        #     driver = b
-        driver.find_element(by=By.NAME, value="userid").send_keys(user_id)
+        # driver.find_element(by=By.NAME, value="userid").send_keys(user_id)
         
-        # wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
+        wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
 
-        driver.find_element(by=By.NAME, value="password").send_keys(password)
+        # driver.find_element(by=By.NAME, value="password").send_keys(password)
+        wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys(password)
         driver.find_element(by=By.NAME, value="login").click()
         try:
-            b =wait_element(driver, By.ID, "nameSurnameCustomer")
-            if b != None:
-                driver = b
+            wait.until(EC.presence_of_element_located((By.ID, "nameSurnameCustomer")))
+            # b =wait_element(driver, By.ID, "nameSurnameCustomer")
+            # if b != None:
+            #     driver = b
             access = True
             logger.info(f"Logged in with {company} account.")
         except Exception as e:
