@@ -136,20 +136,21 @@ def wait_element(driver: webdriver, by: By, element_id: str):
     wait = WebDriverWait(driver, 30)
     current_url=driver.current_url
     try:
-        return wait.until(EC.presence_of_element_located((by, element_id))), None
+        wait.until(EC.presence_of_element_located((by, element_id)))
+        return None
     except exceptions.TimeoutException:
         logger.info("TimeoutException, reloading page...")
         driver.get(current_url)
         try:
-            return wait.until(EC.presence_of_element_located((by, element_id))), None
+            wait.until(EC.presence_of_element_located((by, element_id)))
+            return None
         except exceptions.TimeoutException:
             logger.info("TimeoutException, trying to login...")
             driver=login(company, userid, password, local_path)
             driver.get(current_url)
             wait = WebDriverWait(driver, 30)
-            return wait.until(EC.presence_of_element_located((by, element_id))), driver
-        
-
+            wait.until(EC.presence_of_element_located((by, element_id)))
+            return driver
 
 
 def login(company: str, user_id: str, password: str, local_path: str):
@@ -165,7 +166,7 @@ def login(company: str, user_id: str, password: str, local_path: str):
         ).click()
         assert "MyTerna" in driver.title
 
-        # _,b = wait_element(driver, By.NAME, "userid")
+        # b = wait_element(driver, By.NAME, "userid")
         # if b != None:
         #     driver = b
         driver.find_element(by=By.NAME, value="userid").send_keys(user_id)
@@ -175,7 +176,7 @@ def login(company: str, user_id: str, password: str, local_path: str):
         driver.find_element(by=By.NAME, value="password").send_keys(password)
         driver.find_element(by=By.NAME, value="login").click()
         try:
-            _,b =wait_element(driver, By.ID, "nameSurnameCustomer")
+            b =wait_element(driver, By.ID, "nameSurnameCustomer")
             if b != None:
                 driver = b
             access = True
@@ -231,7 +232,7 @@ def search_meterings(
     else:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MisureUPNRMain.aspx")
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlAnno")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlAnno")
     if b != None:
             driver = b
 
@@ -239,7 +240,7 @@ def search_meterings(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
     ).select_by_value(year)
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlMese")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlMese")
     if b != None:
             driver = b
     Select(
@@ -247,7 +248,7 @@ def search_meterings(
     ).select_by_value(str(int(month)))
 
     if not is_relevant:
-        _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
+        b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlTipoUP")
         if b != None:
             driver = b
         Select(
@@ -256,14 +257,14 @@ def search_meterings(
 
     if not historical:
         if is_relevant:
-            _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
+            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
             if b != None:
                 driver = b
             driver.find_element(
                 by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
             ).send_keys(p)
         else:
-            _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
+            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
             if b != None:
                 driver = b
             driver.find_element(
@@ -299,14 +300,14 @@ def search_meterings(
 
 def get_metering_data(driver: webdriver.Chrome):
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
     if b != None:
             driver = b
     codice_up = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
     ).get_attribute("value")
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
     if b != None:
             driver = b
 
@@ -314,14 +315,14 @@ def get_metering_data(driver: webdriver.Chrome):
         By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
     ).get_attribute("value")
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
     if b != None:
             driver = b
     versione = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxVersione"
     ).get_attribute("value")
 
-    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
+    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
     if b != None:
             driver = b
     validazione = datetime.datetime.strptime(
@@ -362,7 +363,7 @@ def download(
         return False
     else:
 
-        _,b=wait_element(
+        b=wait_element(
             driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
         )
         if b != None:
@@ -444,7 +445,7 @@ def donwload_meterings(
         )
         if res > 0:
 
-            _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
+            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
             if b != None:
                 driver = b
             table = driver.find_element(
@@ -459,7 +460,7 @@ def donwload_meterings(
                 while new_metering:
                     while has_next_page:
 
-                        _,b=wait_element(
+                        b=wait_element(
                             driver,
                             By.XPATH,
                             '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]',
@@ -478,7 +479,7 @@ def donwload_meterings(
                             last_page.click()
                             has_next_page = False
 
-                    _,b=wait_element(
+                    b=wait_element(
                         driver,
                         By.XPATH,
                         '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[1]',
@@ -510,7 +511,7 @@ def donwload_meterings(
                         i = 1
                         page.click()
 
-                    _,b=wait_element(
+                    b=wait_element(
                         driver,
                         By.XPATH,
                         '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
@@ -570,6 +571,8 @@ def donwload_meterings(
                         )
                         new_metering = False
                     i += 1
+                    if page.text=="1":
+                            new_metering=False
                 return plants, found, not_found
         else:
             logger.info(
@@ -604,7 +607,7 @@ def donwload_meterings(
                 v = 1
                 while v < res:
 
-                    _,b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
+                    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
                     if b != None:
                         driver = b
                     table = driver.find_element(
@@ -702,6 +705,7 @@ def run(environment: Environment, parameters: Parameters):
     # TO DO: Spostare in application config
     credentials = get_login_credentials(environment.environment)
     global company, userid, password, local_path
+    local_path = environment.local_path
 
     for company in companies:
         userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
