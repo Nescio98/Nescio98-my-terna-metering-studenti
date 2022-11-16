@@ -168,6 +168,12 @@ def login(company: str, user_id: str, password: str, local_path: str):
         assert "MyTerna" in driver.title
         # driver.find_element(by=By.NAME, value="userid").send_keys(user_id)
         
+        driver.find_element(
+            by=By.CSS_SELECTOR, value="#cookie_popup > div > div:nth-child(5) > button:nth-child(1)"
+        ).click()
+
+        driver.find_element(by=By.NAME, value="password")
+
         wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
 
         # driver.find_element(by=By.NAME, value="password").send_keys(password)
