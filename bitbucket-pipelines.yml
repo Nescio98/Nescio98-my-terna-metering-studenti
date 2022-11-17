@@ -107,7 +107,7 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
-              DestinationBucket=ego-my-terna-metering
+              DestinationBucket=ego-metering-tso-863181445948-eu-west-1
     - step: &task
         name: Deploy to Fargate
         image: amazon/aws-cli
@@ -137,7 +137,7 @@ definitions: # AWS authentication variables are configured in workspace
               DefaultRegion=${AWS_DEFAULT_REGION} 
               ImageName=${ECR_REPO} 
               ImageTag=${IMAGE_TAG}
-              DestinationBucket=ego-my-terna-metering
+              DestinationBucket=ego-metering-tso-863181445948-eu-west-1
 
 pipelines:
   custom:
