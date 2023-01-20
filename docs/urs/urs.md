@@ -78,19 +78,26 @@ L'applicativo vuole poter accedere ad un grosso database privo di api, e attrave
 
 <a name="sp3.1"></a>
 ### 3.1 Stakeholders
+Matteo Fattore - Chief Information Officer
+Fabio Garagiola - Software Architect
+Stefano Balboni - Responsabile Database
 EGO Energy S.R.L
+EGO Data S.R.L
+Terna S.P.A
+
 <a name="sp3.2"></a>
 ### 3.2 Functional Requirements 
 
 | ID | Descrizione | Priorità |
 | --------------- | ----------- | ---------- | 
 | f1 | Il sistema dovrebbe essere in grado di scaricare dati da un sito web senza api |M|
-| f2| Il sistema dovrebbe poter permettere la specifica da parte dell'utente riguardo al range temporale dei dati da scaricare  |D|
+| f2 | Il sistema dovrebbe poter permettere la specifica da parte dell'utente riguardo al range temporale dei dati da scaricare  |D|
 | f3 | Il sistema dovrebbe accedere a dati fino a 5 anni nel passato |M|
 | f4 | Il sistema dovrebbe gestire problematiche di time out causate dal sito di Terna |M|
 | f5 | Il sistema di lettura all'interno del sito di Terna dovrebbe poter essere parallelizzabile |D|
 | f6 | Il sistema dopo aver scaricato i dati dovrebbe salovarli su s3 con una struttura ancora da esplicitare...(sospeso) |D|
 | f7 | Il sistema dovrebbe inviare una notifica via mail specificando quali impianti sono stati aggiornati |D|
+| f8 | Il sistema dovrebbe poter caricare i file su S3 in formato binario invece che come csv |O|
 
 
 <a name="sp3.3"></a>
