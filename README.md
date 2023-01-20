@@ -1,1 +1,4 @@
-# my-terna-metering
+# My Terna Metering
+
+#### Descrizione del progetto
+TODO
