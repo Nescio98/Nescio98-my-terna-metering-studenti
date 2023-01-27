@@ -29,7 +29,15 @@ from application.library.shared import logger, upload_file, get_parameters
 
 
 # TODO: spostare in un helper
+
 def get_login_credentials(environment):
+'''
+Ottiene le credenziali per fare il login tramite una richiesta https
+
+RETURN 
+------
+dizionario con coppie nome:valore (username:password)
+'''
     parameter_names = [
         f"/{environment}/myterna/ego-energy/user",
         f"/{environment}/myterna/ego-energy/password",
@@ -66,6 +74,9 @@ def get_login_credentials(environment):
 
 
 def on_moved(
+'''
+prova a caricare i file su s3, appuntandosi sul db quali file ha scaricato
+'''
     filename: str,
     year,
     month,
@@ -81,6 +92,7 @@ def on_moved(
     s3_client: boto3.client,
 ):
     logger.info("Uploading file % s to S3." % os.path.basename(filename))
+    
     # Event is modified, you can process it now
     res = upload_file(
         filename,
@@ -115,10 +127,15 @@ def on_moved(
 
 
 def get_driver_options(local_path: str):
+'''
+setta le opzioni di selenium per disabilitare i javascript.  
+''''
     options = Options()
     options.binary_location = "/usr/bin/google-chrome-stable"
-
+    
+#headless dovrebbe nascondere la parte grafica del browser runnandolo in background
     options.add_argument("--headless")
+    
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
@@ -133,6 +150,9 @@ def get_driver_options(local_path: str):
 
 
 def wait_element(driver: webdriver, by: By, element_id: str):
+'''
+prende come parametri by ed element id e aspetta fino a 30 secondi per trovare quell'oggetto nella pagina, se non lo trova la prima volta refrasha la pagina, se ancora non lo trova prova a riloggare
+'''
     wait = WebDriverWait(driver, 30)
     current_url=driver.current_url
     try:
@@ -154,6 +174,9 @@ def wait_element(driver: webdriver, by: By, element_id: str):
 
 
 def login(company: str, user_id: str, password: str, local_path: str):
+'''
+prova a loggare 3 volte
+'''
     logger.info("Login with " + company + " account.")
     access = False
     tries = 0
@@ -171,7 +194,8 @@ def login(company: str, user_id: str, password: str, local_path: str):
         driver.find_element(
             by=By.CSS_SELECTOR, value="#cookie_popup > div > div:nth-child(5) > button:nth-child(1)"
         ).click()
-
+        
+# ?????
         driver.find_element(by=By.NAME, value="password")
 
         wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
@@ -196,6 +220,9 @@ def login(company: str, user_id: str, password: str, local_path: str):
 
 
 def create_file_name(
+'''
+definizione del nome del file da salvare su s3 in formato csv (quando scarichi l'excel devi fare un salva con nome, questo è il nome)
+'''
     local_path, plant_type, date, rup, x, version, validation, company
 ):
     return (
@@ -221,7 +248,12 @@ def create_file_name(
         + ".csv"
     )
 
-
+#################################################
+'''
+selenium accede alla pagina per l'inserimento dei dati da scaricare.
+anno, mese, rilevanza, impiano (se rilevante)
+dobbiamo permettere di inserirli a piacimento
+'''
 def search_meterings(
     driver: webdriver.Chrome,
     year: int,
