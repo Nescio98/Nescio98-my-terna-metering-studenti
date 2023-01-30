@@ -31,13 +31,13 @@ from application.library.shared import logger, upload_file, get_parameters
 # TODO: spostare in un helper
 
 def get_login_credentials(environment):
-'''
-Ottiene le credenziali per fare il login tramite una richiesta https
+    '''
+    Ottiene le credenziali per fare il login tramite una richiesta https
 
-RETURN 
-------
-dizionario con coppie nome:valore (username:password)
-'''
+    RETURN 
+    ------
+    dizionario con coppie nome:valore (username:password)
+    '''
     parameter_names = [
         f"/{environment}/myterna/ego-energy/user",
         f"/{environment}/myterna/ego-energy/password",
@@ -74,9 +74,9 @@ dizionario con coppie nome:valore (username:password)
 
 
 def on_moved(
-'''
-prova a caricare i file su s3, appuntandosi sul db quali file ha scaricato
-'''
+    '''
+    prova a caricare i file su s3, appuntandosi sul db quali file ha scaricato
+    '''
     filename: str,
     year,
     month,
@@ -127,9 +127,9 @@ prova a caricare i file su s3, appuntandosi sul db quali file ha scaricato
 
 
 def get_driver_options(local_path: str):
-'''
-setta le opzioni di selenium per disabilitare i javascript.  
-''''
+    '''
+    setta le opzioni di selenium per disabilitare i javascript.  
+    '''
     options = Options()
     options.binary_location = "/usr/bin/google-chrome-stable"
     
@@ -150,9 +150,9 @@ setta le opzioni di selenium per disabilitare i javascript.
 
 
 def wait_element(driver: webdriver, by: By, element_id: str):
-'''
-prende come parametri by ed element id e aspetta fino a 30 secondi per trovare quell'oggetto nella pagina, se non lo trova la prima volta refrasha la pagina, se ancora non lo trova prova a riloggare
-'''
+    '''
+    prende come parametri by ed element id e aspetta fino a 30 secondi per trovare quell'oggetto nella pagina, se non lo trova la prima volta refrasha la pagina, se ancora non lo trova prova a riloggare
+    '''
     wait = WebDriverWait(driver, 30)
     current_url=driver.current_url
     try:
@@ -174,9 +174,9 @@ prende come parametri by ed element id e aspetta fino a 30 secondi per trovare q
 
 
 def login(company: str, user_id: str, password: str, local_path: str):
-'''
-prova a loggare 3 volte
-'''
+    '''
+    prova a loggare 3 volte
+    '''
     logger.info("Login with " + company + " account.")
     access = False
     tries = 0
@@ -220,11 +220,12 @@ prova a loggare 3 volte
 
 
 def create_file_name(
-'''
-definizione del nome del file da salvare su s3 in formato csv (quando scarichi l'excel devi fare un salva con nome, questo è il nome)
-'''
+
     local_path, plant_type, date, rup, x, version, validation, company
 ):
+    '''
+    definizione del nome del file da salvare su s3 in formato csv (quando scarichi l'excel devi fare un salva con nome, questo è il nome)
+    '''
     return (
         local_path
         + "/terna/csv/"
@@ -249,11 +250,11 @@ definizione del nome del file da salvare su s3 in formato csv (quando scarichi l
     )
 
 #################################################
-'''
-selenium accede alla pagina per l'inserimento dei dati da scaricare.
-anno, mese, rilevanza, impiano (se rilevante)
-dobbiamo permettere di inserirli a piacimento
-'''
+    '''
+    selenium accede alla pagina curve di carico per l'inserimento dei dati da scaricare.
+    anno, mese, rilevanza, impiano (se rilevante)
+    dobbiamo permettere di inserirli a piacimento
+    '''
 def search_meterings(
     driver: webdriver.Chrome,
     year: int,
@@ -312,8 +313,12 @@ def search_meterings(
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
 
     # wait_element(driver, By.ID, "ctl00_cphMainPageMetering_lblRecordTrovati")
-
+    
+    #la regex si aspetta una stringa qualsiasi con almeno un numero diverso da 0 es.(xxx5xxxx)
     have_results = re.compile(".*[1-9]\d*.*")
+  
+    
+    #se hai dei risultati ritorni la lunghezza della griglia contenente i risultati, altrimenti stampi che non hai trovato nulla
     if (
         have_results.match(
             driver.find_element(
@@ -336,7 +341,9 @@ def search_meterings(
 
 
 def get_metering_data(driver: webdriver.Chrome):
-
+    '''
+    siamo in curve di carico dopo aver clickato la lente di ingrandimento, ritorniamo codice up, codice_psv, versione, validazione, sapr
+    '''
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
     if b != None:
             driver = b
@@ -403,6 +410,7 @@ def download(
         b=wait_element(
             driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
         )
+        #questo if non ci convinve, cosa succede se == none? scrivi comunque downloading??
         if b != None:
             driver = b
 
@@ -412,7 +420,7 @@ def download(
             by=By.ID,
             value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
         ).click()
-
+        #da guardare, cosa succede se non lo scarica?
         while len(glob(local_path + "/Curve_*.txt")) <= 0:
             sleep(1)
 
@@ -467,7 +475,8 @@ def donwload_meterings(
         plant_type = "UPR"
     else:
         plant_type = "UPNR"
-
+        
+# scarica i nomi dei file già scaricati
     files = get_downloaded_files(year, month, plant_type, company)
 
     os.makedirs(
@@ -476,6 +485,7 @@ def donwload_meterings(
     )
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
+    ###################################################################
     if historical:
         res, _, _ = search_meterings(
             driver, year, month, is_relevant, historical=historical
@@ -621,6 +631,7 @@ def donwload_meterings(
                 )
             )
             return 0, 0, 0
+##################################################################################################
     else:
         if len(plants) / 100 >= 1:
             n = 100
@@ -752,6 +763,8 @@ def run(environment: Environment, parameters: Parameters):
         password = credentials[
             f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
         ]
+        
+###############################################################################################
         if parameters.historical:
             if parameters.relevant:
                 logger.info(f"Downloading history relevant metering for {company}")
@@ -787,6 +800,7 @@ def run(environment: Environment, parameters: Parameters):
                                 historical=True,
                                 destination_bucket=environment.destination_bucket,
                             )
+
             else:
                 logger.info(f"Downloading history unrelevant metering for {company}")
                 for year in range(int(c_year) - 5, int(c_year) + 1):
@@ -819,8 +833,9 @@ def run(environment: Environment, parameters: Parameters):
                             is_relevant=False,
                             local_path=environment.local_path,
                             historical=True,
-                            destination_bucket=environment.destination_bucket,
-                        )
+                            destination_bucket=environment.destination_bucket,)
+    ##############################################################                
+    
         else:
             logger.info(f"Downloading metering for {company}")
             # Download EGO Energy metering relevant
