@@ -14,7 +14,7 @@ class AppConfiguration:
         environment = os.environ.get("ENVIRONMENT")
         aws_default_region = os.environ.get("AWS_DEFULT_REGION")
         destination_bucket = os.environ.get("DESTINATION_BUCKET")
-        local_path = os.environ.get("DOWNLOAD_PATH", "/app/metering")
+        local_path = os.environ.get("DOWNLOAD_PATH", "/app")
         queue_name = os.environ.get("QUEUE_NAME", "")
 
         return Environment.factory(
@@ -29,13 +29,17 @@ class AppConfiguration:
         companies = os.environ.get("COMPANIES", "")
         historical = bool(strtobool(os.environ.get("HISTORICAL", "False")))
         relevant = bool(strtobool(os.environ.get("RELEVANT", "False")))
+        customized = bool(strtobool(os.environ.get("CUSTOMIZED", "False")))
+        month = str(os.environ.get("MONTH", "False"))
+        year = str(os.environ.get("YEAR", "False"))
 
         return Parameters.factory(
             companies=companies,
-            start_date=None,
-            end_date=None,
+            month=month,
+            year=year,
             historical=historical,
             relevant=relevant,
+            customized=customized
         )
 
     def build(self) -> Config:

@@ -6,6 +6,8 @@ import sys
 import subprocess
 from logging import StreamHandler
 from botocore.exceptions import ClientError
+from typing import Dict, List
+from application.library.new_metadata_parser import parse, rup, version
 
 # This variables are defined in serverless:
 # ENVIRONMENT
@@ -93,3 +95,30 @@ def get_parameters(parameters):
     """
     ssm_client = boto3.client("ssm", region_name=REGION)
     return ssm_client.get_parameters(Names=parameters, WithDecryption=True)
+
+
+
+
+def list_keys_from_s3(bucket_name: str, prefix: str):
+    """
+    List the object key in an S3 bucket filtered for a specific prefix. 
+    """
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    for object in bucket.objects.filter(Prefix=prefix, Delimiter='/'):
+        if object.key.endswith('/'):
+            continue
+        yield object.key
+
+
+def already_on_s3(bucket_mane: str, prefix: str) -> Dict[str, int]:
+    keys = list_keys_from_s3(bucket_mane, prefix)
+    return {rup(p):version(p) for p in map(parse, keys)}
+
+
+def get_missing(uploaded_om_S3: Dict[str, int], plants: List[Dict]):
+    if not uploaded_om_S3:
+        return plants
+    else:
+        missing = [plant for plant in plants if not uploaded_om_S3.get(plant['codiceUp'], '') == plant['versione']]
+        return missing

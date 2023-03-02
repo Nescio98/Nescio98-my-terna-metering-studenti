@@ -24,19 +24,21 @@ def _parse_companies(companies: str):
 @dataclass(frozen=True)
 class Parameters:
     companies: List[str]
-    start_date: date
-    end_date: date
+    month: int
+    year: int
     historical: bool
     relevant: bool
+    customized: bool
 
     @staticmethod
     def factory(
         companies: str,
-        start_date: date,
-        end_date: date,
+        month: int,
+        year: int,
         historical: bool,
         relevant: bool,
+        customized: bool
     ):
         return Parameters(
-            _parse_companies(companies), start_date, end_date, historical, relevant
+            _parse_companies(companies), month, year, historical, relevant, customized
         )

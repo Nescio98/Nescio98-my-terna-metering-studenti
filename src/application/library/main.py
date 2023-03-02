@@ -6,7 +6,7 @@ from time import sleep
 from calendar import month
 from cmath import log
 from multiprocessing.connection import wait
-import multiprocessing
+#from multiprocessing.pool import Pool
 from glob2 import glob
 
 import boto3
@@ -74,9 +74,7 @@ def get_login_credentials(environment):
 
 
 def on_moved(
-    '''
-    prova a caricare i file su s3, appuntandosi sul db quali file ha scaricato
-    '''
+  
     filename: str,
     year,
     month,
@@ -91,6 +89,9 @@ def on_moved(
     destination_bucket,
     s3_client: boto3.client,
 ):
+    '''
+    definizione del nome del file da salvare su s3 in formato csv (quando scarichi l'excel devi fare un salva con nome, questo è il nome)
+    '''
     logger.info("Uploading file % s to S3." % os.path.basename(filename))
     
     # Event is modified, you can process it now
@@ -132,8 +133,20 @@ def get_driver_options(local_path: str):
     '''
     options = Options()
     options.binary_location = "/usr/bin/google-chrome-stable"
+
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_experimental_option('excludeSwitches', ['enable-logging'])
+    prefs = {"profile.default_content_settings.popups": 0,    
+            "download.default_directory":local_path,       
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True}
+    options.add_experimental_option("prefs", prefs)
     
-#headless dovrebbe nascondere la parte grafica del browser runnandolo in background
+    '''
+    #headless dovrebbe nascondere la parte grafica del browser runnandolo in background
     options.add_argument("--headless")
     
     options.add_argument("--no-sandbox")
@@ -144,7 +157,9 @@ def get_driver_options(local_path: str):
         "javascript.enabled": False,
     }
     chrome_prefs["profile.default_content_settings"] = {"images": 2}
-    options.experimental_options["prefs"] = chrome_prefs
+    #options.experimental_options["prefs"] = chrome_prefs
+    options.add_experimental_option("prefs",chrome_prefs)
+    '''
 
     return options
 
@@ -249,12 +264,7 @@ def create_file_name(
         + ".csv"
     )
 
-#################################################
-    '''
-    selenium accede alla pagina curve di carico per l'inserimento dei dati da scaricare.
-    anno, mese, rilevanza, impiano (se rilevante)
-    dobbiamo permettere di inserirli a piacimento
-    '''
+
 def search_meterings(
     driver: webdriver.Chrome,
     year: int,
@@ -265,6 +275,10 @@ def search_meterings(
     not_found: int = 0,
     historical: bool = False,
 ):
+    
+    '''
+    selenium accede alla pagina curve di carico per l'inserimento dei dati da scaricare.
+    '''
     if is_relevant:
         driver.get("https://myterna.terna.it/metering/Curvecarico/MainPage.aspx")
     else:
@@ -276,7 +290,7 @@ def search_meterings(
 
     Select(
         driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlAnno")
-    ).select_by_value(year)
+    ).select_by_value(str(year))
 
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_ddlMese")
     if b != None:
@@ -346,14 +360,14 @@ def get_metering_data(driver: webdriver.Chrome):
     '''
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP")
     if b != None:
-            driver = b
+            driver = b 
     codice_up = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodiceUP"
     ).get_attribute("value")
 
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV")
     if b != None:
-            driver = b
+            driver = b 
 
     codice_psv = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxCodicePSV"
@@ -361,14 +375,14 @@ def get_metering_data(driver: webdriver.Chrome):
 
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxVersione")
     if b != None:
-            driver = b
+            driver = b 
     versione = driver.find_element(
         By.ID, "ctl00_cphMainPageMetering_tbxVersione"
     ).get_attribute("value")
 
     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_tbxValidatozioneTerna")
     if b != None:
-            driver = b
+            driver = b 
     validazione = datetime.datetime.strptime(
         (
             driver.find_element(
@@ -410,7 +424,7 @@ def download(
         b=wait_element(
             driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
         )
-        #questo if non ci convinve, cosa succede se == none? scrivi comunque downloading??
+        
         if b != None:
             driver = b
 
@@ -420,19 +434,22 @@ def download(
             by=By.ID,
             value="ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport",
         ).click()
-        #da guardare, cosa succede se non lo scarica?
-        while len(glob(local_path + "/Curve_*.txt")) <= 0:
+
+        for sleeps in range(30):
+            if len(glob("Curve_*.txt")) > 0:
+                break
+            elif sleeps == 300:
+                pass #todo gestisci se il file non viene scaricato
             sleep(1)
 
-        downloaded_file = glob(local_path + "/Curve_*.txt")
+        downloaded_file = glob("Curve_*.txt")
         downloaded_file = downloaded_file[0]
 
         if os.path.isfile(downloaded_file):
             os.rename(r"" + downloaded_file, filename)
-        p = multiprocessing.Process(
-            target=on_moved,
-            args=(
-                filename,
+
+        
+        on_moved(filename,
                 year,
                 month,
                 plant_type,
@@ -444,15 +461,13 @@ def download(
                 company,
                 local_path,
                 destination_bucket,
-                s3_client,
-            ),
-        )
-        p.start()
+                s3_client,)
+        
     driver.execute_script("window.history.go(-1)")
     return True
 
 
-def donwload_meterings(
+def download_meterings(
     driver: webdriver.Chrome,
     company: str,
     year: int,
@@ -467,173 +482,25 @@ def donwload_meterings(
     historical: bool = False,
     destination_bucket: str = "",
 ):
-    if not historical:
-        month = (
-            datetime.datetime.strptime(month, "%m") - relativedelta(months=1)
-        ).strftime("%m")
+    '''
+    It gets the downloaded files with get_downloaded_files() and it downloads with download() every new file for each plant
+    '''
     if is_relevant:
         plant_type = "UPR"
     else:
         plant_type = "UPNR"
         
-# scarica i nomi dei file già scaricati
+    #it gets the downloaded_files
     files = get_downloaded_files(year, month, plant_type, company)
 
-    os.makedirs(
-        f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
-        exist_ok=True,
-    )
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
-    ###################################################################
-    if historical:
-        res, _, _ = search_meterings(
-            driver, year, month, is_relevant, historical=historical
-        )
-        if res > 0:
+ 
+    if historical: #todo
+        pass
 
-            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
-            if b != None:
-                driver = b
-            table = driver.find_element(
-                by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
-            )
-
-            if len(table.find_elements(by=By.CSS_SELECTOR, value="tr")) > 0:
-                x = 1  # cycle throught pages
-                i = 1  # cycle throught page results
-                has_next_page = True
-                new_metering = True
-                last=False
-                while new_metering:
-                    while has_next_page:
-
-                        b=wait_element(
-                            driver,
-                            By.XPATH,
-                            '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]',
-                        )
-                        if b != None:
-                            driver = b
-
-                        last_page = driver.find_element(
-                            By.XPATH,
-                            value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()]',
-                        )
-
-                        if last_page.text == "...":
-                            last_page.click()
-                        else:
-                            last_page.click()
-                            has_next_page = False
-
-                    b=wait_element(
-                        driver,
-                        By.XPATH,
-                        '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[1]',
-                    )
-                    if b != None:
-                        driver = b
-
-                    res = driver.find_elements(
-                        By.XPATH,
-                        value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
-                    )
-                    res = res[1:-1]
-                    if (
-                        len(res) - i < 0
-                    ):  # if there are no more results on the page then go previous page
-                        try:
-                            page = driver.find_element(
-                                By.XPATH,
-                                value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr[last()]/td/table/tbody/tr/td[last()-'
-                                + str(x)
-                                + "]",
-                            )
-                        except:
-                            new_metering=False
-                        if page.text == "1":
-                            last=True
-                        elif page.text == "...":
-                            x = 1
-                        else:
-                            x += 1
-                        i = 1
-                        page.click()
-
-                    b=wait_element(
-                        driver,
-                        By.XPATH,
-                        '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
-                    )
-                    if b != None:
-                        driver = b
-
-                    res = driver.find_elements(
-                        By.XPATH,
-                        value='//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr',
-                    )
-                    res = res[1:-1]
-                    cells = res[len(res) - i].find_elements(by=By.TAG_NAME, value="td")
-                    cells[0].click()
-                    (
-                        codice_up,
-                        codice_psv,
-                        versione,
-                        validazione,
-                        sapr,
-                    ) = get_metering_data(driver)
-
-                    date = year + month
-
-                    filename = create_file_name(
-                        local_path,
-                        plant_type,
-                        date,
-                        codice_up,
-                        codice_psv,
-                        versione,
-                        validazione,
-                        company,
-                    )
-
-                    if not download(
-                        driver,
-                        files,
-                        filename,
-                        local_path,
-                        sapr,
-                        versione,
-                        year,
-                        month,
-                        plant_type,
-                        codice_up,
-                        codice_psv,
-                        validazione,
-                        company,
-                        destination_bucket,
-                        s3_client,
-                    ):
-                        logger.info(
-                            "Didn't found new {} metering for company {}, year {}, month {}".format(
-                                plant_type, company, year, month
-                            )
-                        )
-                        new_metering = False
-                    if last==True:
-                        new_metering = False
-                    i += 1
-                return plants, found, not_found
-        else:
-            logger.info(
-                "Didn't found any metering for company {}, type {}, year {}, month {}".format(
-                    company, plant_type, year, month
-                )
-            )
-            return 0, 0, 0
-##################################################################################################
-    else:
-        if len(plants) / 100 >= 1:
+    else: # if not historical
+        if len(plants) / 100 >= 1:   #it downloads files for at most 100 plants at this iteration
             n = 100
         else:
             n = len(plants)
@@ -655,12 +522,13 @@ def donwload_meterings(
                 historical=historical,
             )
             if res > 0:
-                v = 1
-                while v < res:
+                #v = 1
+                #while v < res:
+                for v in range(1,res):
 
                     b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
                     if b != None:
-                        driver = b
+                        driver = b 
                     table = driver.find_element(
                         by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
                     )
@@ -684,7 +552,7 @@ def donwload_meterings(
                         validazione,
                         company,
                     )
-
+                
                     if not download(
                         driver,
                         files,
@@ -703,7 +571,7 @@ def donwload_meterings(
                         s3_client,
                     ):
                         logger.info("Skipping {} ".format(filename))
-                    v += 1
+                    #v += 1
         return plants, found, not_found
 
 
@@ -718,13 +586,20 @@ def get_metering(
     s3_client,
     destination_bucket,
 ):
+    '''
+    It gets all the plants with the get_plants() function and for each plant it call the download_meterings() function
+    
+    '''
+    os.makedirs(
+        f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
+        exist_ok=True,)
     to_do_plants, p_number = get_plants(relevant, company)
     if p_number != 0:
         found = 0
         not_found = 0
         while len(to_do_plants) > 0:
             driver = login(company, userid, password, local_path)
-            to_do_plants, found, not_found = donwload_meterings(
+            to_do_plants, found, not_found = download_meterings(
                 driver,
                 company,
                 year,
@@ -744,16 +619,11 @@ def get_metering(
         logger.info(f"No metering for {company} relevant plants!")
 
 
+
 def run(environment: Environment, parameters: Parameters):
     os.makedirs(environment.local_path, exist_ok=True)
     companies = parameters.companies
-    # start_watcher(environment.local_path, environment.destination_bucket)
     s3_client = boto3.client("s3")
-    current_date_time = datetime.datetime.now()
-    date = current_date_time.date()
-    c_year = date.strftime("%Y")
-    c_month = date.strftime("%m")
-    # TO DO: Spostare in application config
     credentials = get_login_credentials(environment.environment)
     global company, userid, password, local_path
     local_path = environment.local_path
@@ -764,79 +634,49 @@ def run(environment: Environment, parameters: Parameters):
             f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
         ]
         
-###############################################################################################
-        if parameters.historical:
-            if parameters.relevant:
-                logger.info(f"Downloading history relevant metering for {company}")
-                for year in range(int(c_year) - 5, int(c_year) + 1):
-                    driver = login(company, userid, password, environment.local_path)
-                    if year != c_year:
-                        for month in map(str, range(1, 13)):
-                            month = month.zfill(2)
-
-                            _, found, not_found = donwload_meterings(
-                                driver,
-                                company,
-                                str(year),
-                                str(month),
-                                s3_client,
-                                is_relevant=True,
-                                local_path=environment.local_path,
-                                historical=True,
-                                destination_bucket=environment.destination_bucket,
-                            )
-                    else:
-                        for month in map(str, range(1, int(c_month) - 1)):
-                            month = month.zfill(2)
-
-                            _, found, not_found = donwload_meterings(
-                                driver,
-                                company,
-                                str(year),
-                                str(month),
-                                s3_client,
-                                is_relevant=True,
-                                local_path=environment.local_path,
-                                historical=True,
-                                destination_bucket=environment.destination_bucket,
-                            )
-
-            else:
-                logger.info(f"Downloading history unrelevant metering for {company}")
-                for year in range(int(c_year) - 5, int(c_year) + 1):
-                    driver = login(company, userid, password, environment.local_path)
-                    if year != c_year:
-                        for month in map(str, range(1, 13)):
-                            month = month.zfill(2)
-
-                            _, found, not_found = donwload_meterings(
-                                driver,
-                                company,
-                                str(year),
-                                str(month),
-                                s3_client,
-                                is_relevant=False,
-                                local_path=environment.local_path,
-                                historical=True,
-                                destination_bucket=environment.destination_bucket,
-                            )
-                    else:
-                        for month in map(str, range(1, int(c_month) - 1)):
-                            month = month.zfill(2)
-
-                        _, found, not_found = donwload_meterings(
-                            driver,
-                            company,
-                            str(year),
-                            str(month),
-                            s3_client,
-                            is_relevant=False,
-                            local_path=environment.local_path,
-                            historical=True,
-                            destination_bucket=environment.destination_bucket,)
-    ##############################################################                
+        if parameters.customized : 
+            logger.info(f"Downloading metering for {company}")
+            # Download EGO Energy metering relevant
+            get_metering(
+                True,
+                company,
+                parameters.year,
+                parameters.month,
+                userid,
+                password,
+                environment.local_path,
+                s3_client,
+                destination_bucket=environment.destination_bucket,
+            )
+            # Download EGO Energy metering not relevant
+            get_metering(
+                False,
+                company,
+                parameters.year,
+                parameters.month,
+                userid,
+                password,
+                environment.local_path,
+                s3_client,
+                destination_bucket=environment.destination_bucket,
+            )
+            
+        elif parameters.historical:
+            '''
+            with Pool() as pool:
+                list_temp=[(False,company,parameters.year,parameters.month,userid,password,environment.local_path,s3_client,environment.destination_bucket),
+                           (False,company,parameters.year,(datetime.datetime.strptime(parameters.month, "%m") - relativedelta(months=1)).strftime("%m"),userid,password,environment.local_path,s3_client_2,environment.destination_bucket)]
+                pool.starmap(get_metering,list_temp)
+            '''
+            pass # to do
     
-        else:
+        else: # if not historical is current
+            current_date_time = datetime.datetime.now()
+            date = current_date_time.date()
+            c_year = date.strftime("%Y")
+            c_month = date.strftime("%m")
+            c_month=(datetime.datetime.strptime(c_month, "%m") - relativedelta(months=1)).strftime("%m")
+            if c_month == "12": c_year = (datetime.datetime.strptime(c_year, "%Y") - relativedelta(years=1)).strftime("%Y")
             logger.info(f"Downloading metering for {company}")
             # Download EGO Energy metering relevant
             get_metering(
