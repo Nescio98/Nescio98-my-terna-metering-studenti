@@ -6,7 +6,7 @@ from time import sleep
 from calendar import month
 from cmath import log
 from multiprocessing.connection import wait
-#from multiprocessing.pool import Pool
+from multiprocessing.pool import Pool
 from glob2 import glob
 
 import boto3
@@ -25,7 +25,7 @@ from application.config.environment import Environment
 from application.config.parameters import Parameters
 
 from application.library.database import get_plants, get_downloaded_files, write_measure
-from application.library.shared import logger, upload_file, get_parameters
+from application.library.shared import logger, upload_file, get_parameters, already_on_s3
 
 
 # TODO: spostare in un helper
@@ -103,6 +103,7 @@ def on_moved(
     )
     if res:
         logger.info("File %s uploaded to S3." % os.path.basename(filename))
+        '''
         write_measure(
             os.path.basename(filename),
             year,
@@ -115,6 +116,7 @@ def on_moved(
             validazione,
             company,
         )
+        '''
     else:
         logger.error("File %s not uploaded to S3." % os.path.basename(filename))
 
@@ -401,7 +403,8 @@ def get_metering_data(driver: webdriver.Chrome):
 
 def download(
     driver: webdriver.Chrome,
-    files,
+    #files,
+    on_s3,
     filename,
     local_path,
     sapr,
@@ -416,10 +419,17 @@ def download(
     destination_bucket,
     s3_client: boto3.client,
 ):
-    if files != None and os.path.basename(filename) in files:
+    if on_s3.get(codice_up,"") == int(versione):
         driver.execute_script("window.history.go(-1)")
         return False
     else:
+
+    
+    #if files != None and os.path.basename(filename) in files:
+    #    driver.execute_script("window.history.go(-1)")
+    #    return False
+    #else:
+    
 
         b=wait_element(
             driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
@@ -490,9 +500,8 @@ def download_meterings(
     else:
         plant_type = "UPNR"
         
-    #it gets the downloaded_files
-    files = get_downloaded_files(year, month, plant_type, company)
-
+    #dizionario contente i file di s3
+    on_s3 = already_on_s3CodiceSAPR(destination_bucket, f"terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}/")
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
  
@@ -555,7 +564,8 @@ def download_meterings(
                 
                     if not download(
                         driver,
-                        files,
+                        #files,
+                        on_s3,
                         filename,
                         local_path,
                         p[0],
@@ -583,13 +593,14 @@ def get_metering(
     userid: str,
     password: str,
     local_path,
-    s3_client,
+    #s3_client,
     destination_bucket,
 ):
     '''
     It gets all the plants with the get_plants() function and for each plant it call the download_meterings() function
     
     '''
+    s3_client = boto3.client("s3")
     os.makedirs(
         f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
         exist_ok=True,)
@@ -662,12 +673,12 @@ def run(environment: Environment, parameters: Parameters):
             )
             
         elif parameters.historical:
-            '''
+
             with Pool() as pool:
-                list_temp=[(False,company,parameters.year,parameters.month,userid,password,environment.local_path,s3_client,environment.destination_bucket),
-                           (False,company,parameters.year,(datetime.datetime.strptime(parameters.month, "%m") - relativedelta(months=1)).strftime("%m"),userid,password,environment.local_path,s3_client_2,environment.destination_bucket)]
+                list_temp=[(False,company,parameters.year,parameters.month,userid,password,environment.local_path,environment.destination_bucket),
+                           (False,company,parameters.year,(datetime.datetime.strptime(parameters.month, "%m") - relativedelta(months=1)).strftime("%m"),userid,password,environment.local_path,environment.destination_bucket)]
                 pool.starmap(get_metering,list_temp)
-            '''
+
             pass # to do
     
         else: # if not historical is current

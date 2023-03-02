@@ -111,14 +111,14 @@ def list_keys_from_s3(bucket_name: str, prefix: str):
         yield object.key
 
 
-def already_on_s3(bucket_mane: str, prefix: str) -> Dict[str, int]:
-    keys = list_keys_from_s3(bucket_mane, prefix)
+def already_on_s3(bucket_name: str, prefix: str) -> Dict[str, int]:
+    keys = list_keys_from_s3(bucket_name, prefix)
     return {rup(p):version(p) for p in map(parse, keys)}
 
 
-def get_missing(uploaded_om_S3: Dict[str, int], plants: List[Dict]):
-    if not uploaded_om_S3:
+def get_missing(uploaded_on_S3: Dict[str, int], plants: List[Dict]):
+    if not uploaded_on_S3:
         return plants
     else:
-        missing = [plant for plant in plants if not uploaded_om_S3.get(plant['codiceUp'], '') == plant['versione']]
+        missing = [plant for plant in plants if not uploaded_on_S3.get(plant['codiceUp'], '') == plant['versione']]
         return missing
