@@ -501,7 +501,7 @@ def download_meterings(
         plant_type = "UPNR"
         
     #dizionario contente i file di s3
-    on_s3 = already_on_s3CodiceSAPR(destination_bucket, f"terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}/")
+    on_s3 = already_on_s3(destination_bucket, f"terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}/")
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
  
