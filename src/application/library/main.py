@@ -273,8 +273,6 @@ def search_meterings(
     month: int,
     is_relevant: bool,
     p: int = 0,
-    found: int = 0,
-    not_found: int = 0,
     historical: bool = False,
 ):
     
@@ -343,17 +341,16 @@ def search_meterings(
         )
         != None
     ):
-        found = found + 1
         l = len(
             driver.find_elements(
                 By.XPATH, '//*[@id="ctl00_cphMainPageMetering_GridView1"]/tbody/tr'
             )
         )
-        return l, found, not_found
+        return l
     elif not historical:
         logger.info("No data for plant: " + p[0])
-    not_found += 1
-    return 0, found, not_found
+
+    return 0
 
 
 def get_metering_data(driver: webdriver.Chrome):
@@ -485,12 +482,10 @@ def download_meterings(
     s3_client: boto3.client,
     is_relevant: bool,
     local_path: str,
-    plants: int = 0,
-    p_number: int = 0,
-    found: int = 0,
-    not_found: int = 0,
+    plant: str = "",
     historical: bool = False,
     destination_bucket: str = "",
+    
 ):
     '''
     It gets the downloaded files with get_downloaded_files() and it downloads with download() every new file for each plant
@@ -501,88 +496,66 @@ def download_meterings(
         plant_type = "UPNR"
         
     #dizionario contente i file di s3
-    on_s3 = already_on_s3CodiceSAPR(destination_bucket, f"terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}/")
+    on_s3 = already_on_s3(destination_bucket, f"terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}/")
 
     driver.get("https://myterna.terna.it/metering/Home.aspx")
  
-    if historical: #todo
-        pass
-
-    else: # if not historical
-        if len(plants) / 100 >= 1:   #it downloads files for at most 100 plants at this iteration
-            n = 100
-        else:
-            n = len(plants)
-        for _ in range(0, n):
-            p = plants.pop()
-            logger.info(
-                "Searching plant {} ({} of {}).".format(
-                    p[0], found + not_found + 1, p_number
-                )
-            )
-            res, found, not_found = search_meterings(
+    logger.info("Searching plant {} .".format(plant))
+    res = search_meterings(
                 driver,
                 year,
                 month,
                 is_relevant,
-                p,
-                found,
-                not_found,
+                plant,
                 historical=historical,
             )
-            if res > 0:
-                #v = 1
-                #while v < res:
-                for v in range(1,res):
+    if res > 0:
+        for v in range(1,res):
+            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
+            if b != None:
+                driver = b 
+            table = driver.find_element(
+                by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
+            )
+            cells = table.find_elements(by=By.CSS_SELECTOR, value="tr")[
+                v
+            ].find_elements(by=By.TAG_NAME, value=("td"))
+            cells[0].click()
+            codice_up, codice_psv, versione, validazione, _ = get_metering_data(
+                driver
+            )
 
-                    b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_GridView1")
-                    if b != None:
-                        driver = b 
-                    table = driver.find_element(
-                        by=By.ID, value="ctl00_cphMainPageMetering_GridView1"
-                    )
-                    cells = table.find_elements(by=By.CSS_SELECTOR, value="tr")[
-                        v
-                    ].find_elements(by=By.TAG_NAME, value=("td"))
-                    cells[0].click()
-                    codice_up, codice_psv, versione, validazione, _ = get_metering_data(
-                        driver
-                    )
+            date = year + month
 
-                    date = year + month
-
-                    filename = create_file_name(
-                        local_path,
-                        plant_type,
-                        date,
-                        codice_up,
-                        codice_psv,
-                        versione,
-                        validazione,
-                        company,
-                    )
-                
-                    if not download(
-                        driver,
-                        #files,
-                        on_s3,
-                        filename,
-                        local_path,
-                        p[0],
-                        versione,
-                        year,
-                        month,
-                        plant_type,
-                        codice_up,
-                        codice_psv,
-                        validazione,
-                        company,
-                        destination_bucket,
-                        s3_client,
-                    ):
-                        logger.info("Skipping {} ".format(filename))
-                    #v += 1
-        return plants, found, not_found
+            filename = create_file_name(
+                local_path,
+                plant_type,
+                date,
+                codice_up,
+                codice_psv,
+                versione,
+                validazione,
+                company,
+            )
+        
+            if not download(
+                driver,
+                on_s3,
+                filename,
+                local_path,
+                plant,
+                versione,
+                year,
+                month,
+                plant_type,
+                codice_up,
+                codice_psv,
+                validazione,
+                company,
+                destination_bucket,
+                s3_client,
+            ):
+                logger.info("Skipping {} ".format(filename))
 
 
 def get_metering(
@@ -593,8 +566,8 @@ def get_metering(
     userid: str,
     password: str,
     local_path,
-    #s3_client,
     destination_bucket,
+    plant
 ):
     '''
     It gets all the plants with the get_plants() function and for each plant it call the download_meterings() function
@@ -604,13 +577,10 @@ def get_metering(
     os.makedirs(
         f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
         exist_ok=True,)
-    to_do_plants, p_number = get_plants(relevant, company)
-    if p_number != 0:
-        found = 0
-        not_found = 0
-        while len(to_do_plants) > 0:
-            driver = login(company, userid, password, local_path)
-            to_do_plants, found, not_found = download_meterings(
+    #to_do_plants, p_number = get_plants(relevant, company)
+
+    driver = login(company, userid, password, local_path)
+    download_meterings(
                 driver,
                 company,
                 year,
@@ -618,16 +588,13 @@ def get_metering(
                 s3_client,
                 relevant,
                 local_path,
-                to_do_plants,
-                p_number,
-                found,
-                not_found,
+                plant,
                 False,
                 destination_bucket,
             )  # Download EGO Energy relevant metering
-        logger.info(f"Downloaded data of {str(found)}/{str(p_number)} plants")
-    else:
-        logger.info(f"No metering for {company} relevant plants!")
+    #logger.info(f"Downloaded data of {str(found)}/{str(p_number)} plants")
+    #else:
+        #logger.info(f"No metering for {company} relevant plants!")
 
 
 
@@ -648,6 +615,7 @@ def run(environment: Environment, parameters: Parameters):
         if parameters.customized : 
             logger.info(f"Downloading metering for {company}")
             # Download EGO Energy metering relevant
+            '''
             get_metering(
                 True,
                 company,
@@ -656,9 +624,10 @@ def run(environment: Environment, parameters: Parameters):
                 userid,
                 password,
                 environment.local_path,
-                s3_client,
                 destination_bucket=environment.destination_bucket,
+                plant="S05CLLC"
             )
+            '''
             # Download EGO Energy metering not relevant
             get_metering(
                 False,
@@ -668,8 +637,8 @@ def run(environment: Environment, parameters: Parameters):
                 userid,
                 password,
                 environment.local_path,
-                s3_client,
                 destination_bucket=environment.destination_bucket,
+                plant="S05CLLC"
             )
             
         elif parameters.historical:
