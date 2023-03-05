@@ -59,7 +59,7 @@ def execute_query(connection, query):
             cursor.close()
             connection.close()
 
-
+'''
 def get_plants(is_relevant: bool, company: str):
     query = f"""
         SELECT
@@ -78,6 +78,19 @@ def get_plants(is_relevant: bool, company: str):
         f"Found {p_number} {company} {'relevant' if is_relevant else 'not relevant'} plants"
     )
     return plants, p_number
+'''
+def get_plants(company: str):
+        query = f"""
+        SELECT
+            "CodiceSAPR", "Rilevante"
+        FROM
+            zoho_crm."Impianti"
+        WHERE
+            "UnitàDisp.Come" = '{company}' AND
+            "AttualmenteDisp.Terna?" = TRUE; """
+        conn = get_db_connection(*get_aws_param())
+        plants = execute_query(conn, query)
+        return plants
 
 
 def get_downloaded_files(anno: int, mese: int, tipologia: str, dispacciato_da: str):

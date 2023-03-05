@@ -8,6 +8,7 @@ from logging import StreamHandler
 from botocore.exceptions import ClientError
 from typing import Dict, List
 from application.library.new_metadata_parser import parse, rup, version
+from application.library.message import Message
 
 # This variables are defined in serverless:
 # ENVIRONMENT
@@ -122,3 +123,13 @@ def get_missing(uploaded_on_S3: Dict[str, int], plants: List[Dict]):
     else:
         missing = [plant for plant in plants if not uploaded_on_S3.get(plant['codiceUp'], '') == plant['versione']]
         return missing
+    
+def make_monthly_queue_list(plant_list: List[tuple],year:str,month:str):    
+    return [Message(year, month, plant[0], plant[1]) for plant in plant_list]
+
+
+
+def make_historical_queue(plant_list: List[tuple]):
+    pass
+
+

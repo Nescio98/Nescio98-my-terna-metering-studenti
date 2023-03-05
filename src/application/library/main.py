@@ -8,6 +8,7 @@ from cmath import log
 from multiprocessing.connection import wait
 from multiprocessing.pool import Pool
 from glob2 import glob
+import copy
 
 import boto3
 import watchdog.events
@@ -25,7 +26,8 @@ from application.config.environment import Environment
 from application.config.parameters import Parameters
 
 from application.library.database import get_plants, get_downloaded_files, write_measure
-from application.library.shared import logger, upload_file, get_parameters, already_on_s3
+from application.library.shared import logger, upload_file, get_parameters, already_on_s3,make_monthly_queue_list
+from application.library.message import Message
 
 
 # TODO: spostare in un helper
@@ -269,8 +271,8 @@ def create_file_name(
 
 def search_meterings(
     driver: webdriver.Chrome,
-    year: int,
-    month: int,
+    year: str,
+    month: str,
     is_relevant: bool,
     p: int = 0,
     historical: bool = False,
@@ -307,21 +309,21 @@ def search_meterings(
             driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_ddlTipoUP")
         ).select_by_value("UPNR_PUNTUALE")
 
-    if not historical:
-        if is_relevant:
-            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
-            if b != None:
-                driver = b
-            driver.find_element(
-                by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
-            ).send_keys(p)
-        else:
-            b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
-            if b != None:
-                driver = b
-            driver.find_element(
-                by=By.ID, value="ctl00_cphMainPageMetering_txtCodiceUPDesc"
-            ).send_keys(p)
+    #if not historical:
+    if is_relevant:
+        b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtImpiantoDesc")
+        if b != None:
+            driver = b
+        driver.find_element(
+            by=By.ID, value="ctl00_cphMainPageMetering_txtImpiantoDesc"
+        ).send_keys(p)
+    else:
+        b=wait_element(driver, By.ID, "ctl00_cphMainPageMetering_txtCodiceUPDesc")
+        if b != None:
+            driver = b
+        driver.find_element(
+            by=By.ID, value="ctl00_cphMainPageMetering_txtCodiceUPDesc"
+        ).send_keys(p)
 
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_rbTutte").click()
     driver.find_element(by=By.ID, value="ctl00_cphMainPageMetering_btSearh").click()
@@ -348,7 +350,7 @@ def search_meterings(
         )
         return l
     elif not historical:
-        logger.info("No data for plant: " + p[0])
+        logger.info("No data for plant: " + p)
 
     return 0
 
@@ -469,6 +471,11 @@ def download(
                 local_path,
                 destination_bucket,
                 s3_client,)
+        '''
+        if parameters.historical:
+            duplicate_filename= "crea la stringa del conguaglio"
+            uploada su s3 la copia
+        '''
         
     driver.execute_script("window.history.go(-1)")
     return True
@@ -477,8 +484,8 @@ def download(
 def download_meterings(
     driver: webdriver.Chrome,
     company: str,
-    year: int,
-    month: int,
+    year: str,
+    month: str,
     s3_client: boto3.client,
     is_relevant: bool,
     local_path: str,
@@ -525,7 +532,7 @@ def download_meterings(
                 driver
             )
 
-            date = year + month
+            date = str(year) + str(month)
 
             filename = create_file_name(
                 local_path,
@@ -556,13 +563,16 @@ def download_meterings(
                 s3_client,
             ):
                 logger.info("Skipping {} ".format(filename))
+                return None
+            else: return filename.replace(local_path + "/", "")
 
 
 def get_metering(
+    driver,
     relevant: bool,
     company: str,
-    year: int,
-    month: int,
+    year: str,
+    month: str,
     userid: str,
     password: str,
     local_path,
@@ -573,14 +583,15 @@ def get_metering(
     It gets all the plants with the get_plants() function and for each plant it call the download_meterings() function
     
     '''
+    year=str(year)
+    if isinstance(month,int) and month < 10:
+        month = "0"+str(month)
+    else: str(month)
     s3_client = boto3.client("s3")
     os.makedirs(
         f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
         exist_ok=True,)
-    #to_do_plants, p_number = get_plants(relevant, company)
-
-    driver = login(company, userid, password, local_path)
-    download_meterings(
+    result = download_meterings(
                 driver,
                 company,
                 year,
@@ -590,11 +601,11 @@ def get_metering(
                 local_path,
                 plant,
                 False,
-                destination_bucket,
-            )  # Download EGO Energy relevant metering
-    #logger.info(f"Downloaded data of {str(found)}/{str(p_number)} plants")
-    #else:
-        #logger.info(f"No metering for {company} relevant plants!")
+                destination_bucket,)
+    #qui rimuovo l'elemento dalla coda
+    if result:
+        log_list.append(result)
+    
 
 
 
@@ -603,8 +614,9 @@ def run(environment: Environment, parameters: Parameters):
     companies = parameters.companies
     s3_client = boto3.client("s3")
     credentials = get_login_credentials(environment.environment)
-    global company, userid, password, local_path
+    global company, userid, password, local_path,log_list
     local_path = environment.local_path
+    log_list =[]
 
     for company in companies:
         userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
@@ -643,13 +655,50 @@ def run(environment: Environment, parameters: Parameters):
             
         elif parameters.historical:
 
+            '''
             with Pool() as pool:
                 list_temp=[(False,company,parameters.year,parameters.month,userid,password,environment.local_path,environment.destination_bucket),
                            (False,company,parameters.year,(datetime.datetime.strptime(parameters.month, "%m") - relativedelta(months=1)).strftime("%m"),userid,password,environment.local_path,environment.destination_bucket)]
                 pool.starmap(get_metering,list_temp)
+            '''
+            driver = login(company, userid, password, local_path)
+            msg_list=make_monthly_queue_list(get_plants(company),"2023","02")
+            #session = boto3.Session(profile_name='unige')
+            client = boto3.client('sqs', region_name='eu-west-1')
+            queue_url = 'https://sqs.eu-west-1.amazonaws.com/092381324368/test-scraper-tso'
+            for msg in msg_list:
+                response = client.send_message(
+                    QueueUrl=queue_url,
+                    MessageBody=msg.to_json()
+                    )
+            print(len(msg_list))
+            i=0
 
-            pass # to do
-    
+            while True:
+                response = client.receive_message(
+                    QueueUrl=queue_url,
+                    MaxNumberOfMessages=1,
+                    WaitTimeSeconds=20
+                )
+
+                if 'Messages' not in response:
+                    break
+
+                #param_list =[]
+                for m in response['Messages']:
+                    msg = Message.from_json(m['Body'])
+                    reciept_handle = m['ReceiptHandle']
+                    #param_list.append((reciept_handle,queue_url,msg.relevant,company,msg.year,msg.month,userid,password,local_path,environment.destination_bucket,msg.sapr))
+                    get_metering(driver,msg.relevant,company,msg.year,msg.month,userid,password,local_path,environment.destination_bucket,msg.sapr)
+                    i=i+1
+                    print(i)
+                    response = client.delete_message(
+                        QueueUrl=queue_url,
+                        ReceiptHandle=reciept_handle
+                        ) 
+            print("fine")
+            for res in log_list:
+                print(res)
         else: # if not historical is current
             current_date_time = datetime.datetime.now()
             date = current_date_time.date()
