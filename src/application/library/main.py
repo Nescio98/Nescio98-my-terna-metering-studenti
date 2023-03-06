@@ -78,15 +78,6 @@ def get_login_credentials(environment):
 def on_moved(
   
     filename: str,
-    year,
-    month,
-    plant_type,
-    sapr,
-    codice_up,
-    codice_psv,
-    versione,
-    validazione,
-    company,
     local_path,
     destination_bucket,
     s3_client: boto3.client,
@@ -105,20 +96,7 @@ def on_moved(
     )
     if res:
         logger.info("File %s uploaded to S3." % os.path.basename(filename))
-        '''
-        write_measure(
-            os.path.basename(filename),
-            year,
-            month,
-            plant_type,
-            sapr,
-            codice_up,
-            codice_psv,
-            versione,
-            validazione,
-            company,
-        )
-        '''
+
     else:
         logger.error("File %s not uploaded to S3." % os.path.basename(filename))
 
@@ -148,22 +126,6 @@ def get_driver_options(local_path: str):
             "download.prompt_for_download": False,
             "download.directory_upgrade": True}
     options.add_experimental_option("prefs", prefs)
-    
-    '''
-    #headless dovrebbe nascondere la parte grafica del browser runnandolo in background
-    options.add_argument("--headless")
-    
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    chrome_prefs = {
-        "download.default_directory": local_path,
-        "javascript.enabled": False,
-    }
-    chrome_prefs["profile.default_content_settings"] = {"images": 2}
-    #options.experimental_options["prefs"] = chrome_prefs
-    options.add_experimental_option("prefs",chrome_prefs)
-    '''
 
     return options
 
@@ -214,7 +176,6 @@ def login(company: str, user_id: str, password: str, local_path: str):
             by=By.CSS_SELECTOR, value="#cookie_popup > div > div:nth-child(5) > button:nth-child(1)"
         ).click()
         
-# ?????
         driver.find_element(by=By.NAME, value="password")
 
         wait.until(EC.presence_of_element_located((By.NAME, "userid"))).send_keys(user_id)
@@ -275,7 +236,6 @@ def search_meterings(
     month: str,
     is_relevant: bool,
     p: int = 0,
-    historical: bool = False,
 ):
     
     '''
@@ -349,7 +309,7 @@ def search_meterings(
             )
         )
         return l
-    elif not historical:
+    else:
         logger.info("No data for plant: " + p)
 
     return 0
@@ -402,18 +362,12 @@ def get_metering_data(driver: webdriver.Chrome):
 
 def download(
     driver: webdriver.Chrome,
-    #files,
     on_s3,
     filename,
     local_path,
     sapr,
     versione,
-    year,
-    month,
-    plant_type,
     codice_up,
-    codice_psv,
-    validazione,
     company,
     destination_bucket,
     s3_client: boto3.client,
@@ -421,15 +375,8 @@ def download(
     if on_s3.get(codice_up,"") == int(versione):
         driver.execute_script("window.history.go(-1)")
         return False
+    
     else:
-
-    
-    #if files != None and os.path.basename(filename) in files:
-    #    driver.execute_script("window.history.go(-1)")
-    #    return False
-    #else:
-    
-
         b=wait_element(
             driver, By.ID, "ctl00_cphMainPageMetering_Toolbar2_ToolButtonExport"
         )
@@ -458,24 +405,22 @@ def download(
             os.rename(r"" + downloaded_file, filename)
 
         
-        on_moved(filename,
-                year,
-                month,
-                plant_type,
-                sapr,
-                codice_up,
-                codice_psv,
-                versione,
-                validazione,
-                company,
-                local_path,
-                destination_bucket,
-                s3_client,)
-        '''
-        if parameters.historical:
-            duplicate_filename= "crea la stringa del conguaglio"
-            uploada su s3 la copia
-        '''
+        on_moved(filename,local_path,destination_bucket,s3_client,)
+        
+        if historical:
+            current_date_time = datetime.datetime.now()
+            date = current_date_time.date()
+            c_year = date.strftime("%Y")
+            c_month = date.strftime("%m")
+            c_day = date.strftime("%d")
+            os.makedirs(
+                f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/conguagli/{c_year}_{c_month}_{c_day}",
+                exist_ok=True,)
+            name = filename.rsplit("/",1)[-1]
+            duplicate_filename= f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/conguagli/{c_year}_{c_month}_{c_day}/{name}"
+            #if os.path.isfile(filename):
+            os.rename(r"" + filename, duplicate_filename)
+            on_moved(duplicate_filename,local_path,destination_bucket,s3_client,)
         
     driver.execute_script("window.history.go(-1)")
     return True
@@ -490,12 +435,11 @@ def download_meterings(
     is_relevant: bool,
     local_path: str,
     plant: str = "",
-    historical: bool = False,
     destination_bucket: str = "",
     
 ):
     '''
-    It gets the downloaded files with get_downloaded_files() and it downloads with download() every new file for each plant
+    It checks if the current file is already on s3 and, if not, it downloads the file and upload it on s3
     '''
     if is_relevant:
         plant_type = "UPR"
@@ -514,7 +458,6 @@ def download_meterings(
                 month,
                 is_relevant,
                 plant,
-                historical=historical,
             )
     if res > 0:
         for v in range(1,res):
@@ -552,18 +495,14 @@ def download_meterings(
                 local_path,
                 plant,
                 versione,
-                year,
-                month,
-                plant_type,
                 codice_up,
-                codice_psv,
-                validazione,
                 company,
                 destination_bucket,
                 s3_client,
             ):
                 logger.info("Skipping {} ".format(filename))
                 return None
+            
             else: return filename.replace(local_path + "/", "")
 
 
@@ -573,24 +512,26 @@ def get_metering(
     company: str,
     year: str,
     month: str,
-    userid: str,
-    password: str,
     local_path,
     destination_bucket,
     plant
 ):
     '''
-    It gets all the plants with the get_plants() function and for each plant it call the download_meterings() function
+    It calls the download_metering() and it appends the result in the log_list
     
     '''
+    #conversion to string from the parameters of the Message class, due to a bug
     year=str(year)
     if isinstance(month,int) and month < 10:
         month = "0"+str(month)
     else: str(month)
+
     s3_client = boto3.client("s3")
+
     os.makedirs(
         f"{local_path}/terna/csv/{company.lower().replace(' ', '-')}/{year}/{month}",
         exist_ok=True,)
+    
     result = download_meterings(
                 driver,
                 company,
@@ -600,9 +541,7 @@ def get_metering(
                 relevant,
                 local_path,
                 plant,
-                False,
                 destination_bucket,)
-    #qui rimuovo l'elemento dalla coda
     if result:
         log_list.append(result)
     
@@ -611,125 +550,45 @@ def get_metering(
 
 def run(environment: Environment, parameters: Parameters):
     os.makedirs(environment.local_path, exist_ok=True)
-    companies = parameters.companies
-    s3_client = boto3.client("s3")
     credentials = get_login_credentials(environment.environment)
-    global company, userid, password, local_path,log_list
+
+    global company, userid, password, local_path,log_list, historical
+    company = parameters.company
+    userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
+    password = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/password']
     local_path = environment.local_path
+    historical = parameters.historical
     log_list =[]
 
-    for company in companies:
-        userid = credentials[f'/prod/myterna/{company.lower().replace(" ", "-")}/user']
-        password = credentials[
-            f'/prod/myterna/{company.lower().replace(" ", "-")}/password'
-        ]
-        
-        if parameters.customized : 
-            logger.info(f"Downloading metering for {company}")
-            # Download EGO Energy metering relevant
-            '''
-            get_metering(
-                True,
-                company,
-                parameters.year,
-                parameters.month,
-                userid,
-                password,
-                environment.local_path,
-                destination_bucket=environment.destination_bucket,
-                plant="S05CLLC"
-            )
-            '''
-            # Download EGO Energy metering not relevant
-            get_metering(
-                False,
-                company,
-                parameters.year,
-                parameters.month,
-                userid,
-                password,
-                environment.local_path,
-                destination_bucket=environment.destination_bucket,
-                plant="S05CLLC"
-            )
-            
-        elif parameters.historical:
+    driver = login(company, userid, password, local_path)
+    sqs_client = boto3.client('sqs', region_name='eu-west-1')
+    queue_url = 'https://sqs.eu-west-1.amazonaws.com/092381324368/test-scraper-tso'
 
-            '''
-            with Pool() as pool:
-                list_temp=[(False,company,parameters.year,parameters.month,userid,password,environment.local_path,environment.destination_bucket),
-                           (False,company,parameters.year,(datetime.datetime.strptime(parameters.month, "%m") - relativedelta(months=1)).strftime("%m"),userid,password,environment.local_path,environment.destination_bucket)]
-                pool.starmap(get_metering,list_temp)
-            '''
-            driver = login(company, userid, password, local_path)
-            msg_list=make_monthly_queue_list(get_plants(company),"2023","02")
-            #session = boto3.Session(profile_name='unige')
-            client = boto3.client('sqs', region_name='eu-west-1')
-            queue_url = 'https://sqs.eu-west-1.amazonaws.com/092381324368/test-scraper-tso'
-            for msg in msg_list:
-                response = client.send_message(
-                    QueueUrl=queue_url,
-                    MessageBody=msg.to_json()
-                    )
-            print(len(msg_list))
-            i=0
+    logger.info(f"Downloading metering for {company}")
 
-            while True:
-                response = client.receive_message(
-                    QueueUrl=queue_url,
-                    MaxNumberOfMessages=1,
-                    WaitTimeSeconds=20
-                )
+    #i=0
+    while True:
+        response = sqs_client.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=20
+        )
 
-                if 'Messages' not in response:
-                    break
+        if 'Messages' not in response:
+            break
 
-                #param_list =[]
-                for m in response['Messages']:
-                    msg = Message.from_json(m['Body'])
-                    reciept_handle = m['ReceiptHandle']
-                    #param_list.append((reciept_handle,queue_url,msg.relevant,company,msg.year,msg.month,userid,password,local_path,environment.destination_bucket,msg.sapr))
-                    get_metering(driver,msg.relevant,company,msg.year,msg.month,userid,password,local_path,environment.destination_bucket,msg.sapr)
-                    i=i+1
-                    print(i)
-                    response = client.delete_message(
-                        QueueUrl=queue_url,
-                        ReceiptHandle=reciept_handle
-                        ) 
-            print("fine")
-            for res in log_list:
-                print(res)
-        else: # if not historical is current
-            current_date_time = datetime.datetime.now()
-            date = current_date_time.date()
-            c_year = date.strftime("%Y")
-            c_month = date.strftime("%m")
-            c_month=(datetime.datetime.strptime(c_month, "%m") - relativedelta(months=1)).strftime("%m")
-            if c_month == "12": c_year = (datetime.datetime.strptime(c_year, "%Y") - relativedelta(years=1)).strftime("%Y")
-            logger.info(f"Downloading metering for {company}")
-            # Download EGO Energy metering relevant
-            get_metering(
-                True,
-                company,
-                c_year,
-                c_month,
-                userid,
-                password,
-                environment.local_path,
-                s3_client,
-                destination_bucket=environment.destination_bucket,
-            )
-            # Download EGO Energy metering not relevant
-            get_metering(
-                False,
-                company,
-                c_year,
-                c_month,
-                userid,
-                password,
-                environment.local_path,
-                s3_client,
-                destination_bucket=environment.destination_bucket,
-            )
-    # TODO; da vedere
+        for m in response['Messages']:
+            msg = Message.from_json(m['Body'])
+            reciept_handle = m['ReceiptHandle']
+            get_metering(driver,msg.relevant,company,msg.year,msg.month,local_path,environment.destination_bucket,msg.sapr)
+            #i+=1
+            #logger.info(f"{i}")
+            response = sqs_client.delete_message(
+                QueueUrl=queue_url,
+                ReceiptHandle=reciept_handle
+                ) 
+    logger.info(f"Download completed")
+    for res in log_list:
+        #print(res) #invia la lista
+        pass
     return True

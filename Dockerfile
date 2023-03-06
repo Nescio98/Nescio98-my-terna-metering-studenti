@@ -33,7 +33,7 @@ ENV DOWNLOAD_PATH="/tmp/measures"
 ENV QUEUE_NAME=""
 
 ENV HISTORICAL="False"
-ENV COMPANIES=""
+ENV COMPANY=""
 
 # File to copy inside the container
 # NB: You have to insert those also on bitbucket-pipelines condition in order to create the new image on file edit

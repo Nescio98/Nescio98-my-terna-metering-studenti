@@ -26,20 +26,12 @@ class AppConfiguration:
         )
 
     def get_parameters(self) -> Parameters:
-        companies = os.environ.get("COMPANIES", "")
+        company = os.environ.get("COMPANY", "")
         historical = bool(strtobool(os.environ.get("HISTORICAL", "False")))
-        relevant = bool(strtobool(os.environ.get("RELEVANT", "False")))
-        customized = bool(strtobool(os.environ.get("CUSTOMIZED", "False")))
-        month = str(os.environ.get("MONTH", "False"))
-        year = str(os.environ.get("YEAR", "False"))
 
         return Parameters.factory(
-            companies=companies,
-            month=month,
-            year=year,
+            company=company,
             historical=historical,
-            relevant=relevant,
-            customized=customized
         )
 
     def build(self) -> Config:
